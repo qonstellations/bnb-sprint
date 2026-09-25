@@ -4,20 +4,31 @@ import { Link } from "react-router-dom";
 import { ordersApi } from "../api/orders.js";
 import { queryKeys } from "../lib/queryClient.js";
 import { normalizeApiError } from "../lib/errors.js";
+import { toast } from "../lib/toast.js";
 import { formatCurrency, formatDateTime } from "../lib/format.js";
 import { Badge, Card, EmptyState, ErrorState, Modal, Skeleton } from "../components/ui.jsx";
 
 // Dev1 orders page per PLAN Sec 15. Status enums follow API.md; only OPEN is cancellable.
+const STATUS_FILTERS = ["ALL", "OPEN", "FILLED", "CANCELLED"];
+
 export default function Orders() {
   const queryClient = useQueryClient();
   const [confirmId, setConfirmId] = useState(null);
-  const list = useQuery({ queryKey: queryKeys.orders(), queryFn: () => ordersApi.list({ page: 1, limit: 20 }) });
+  const [status, setStatus] = useState("ALL");
+  const filters = status === "ALL" ? { page: 1, limit: 20 } : { page: 1, limit: 20, status };
+  const list = useQuery({ queryKey: queryKeys.orders(filters), queryFn: () => ordersApi.list(filters) });
 
   const cancel = useMutation({
     mutationFn: (id) => ordersApi.cancel(id),
     onSuccess: () => {
       setConfirmId(null);
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.positions() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.portfolioSummary() });
+      toast.success("Order cancelled.");
+    },
+    onError: (err) => {
+      toast.error(normalizeApiError(err).message);
     },
   });
 
@@ -25,12 +36,33 @@ export default function Orders() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-bold">Orders</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-lg font-bold">Orders</h1>
+        <div className="flex gap-1 rounded-lg bg-slate-900 p-1" role="tablist" aria-label="Filter orders by status">
+          {STATUS_FILTERS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              role="tab"
+              aria-selected={status === s}
+              onClick={() => setStatus(s)}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-indigo-500 ${
+                status === s ? "bg-slate-700 text-white" : "text-slate-400 hover:text-white"
+              }`}
+            >
+              {s === "ALL" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()}
+            </button>
+          ))}
+        </div>
+      </div>
       <Card>
         {list.isLoading ? <Skeleton className="h-24" /> : list.isError ? (
           <ErrorState message="Orders failed to load." onRetry={() => list.refetch()} />
         ) : orders.length === 0 ? (
-          <EmptyState title="No orders yet." hint="Place a paper trade from a stock page." />
+          <EmptyState
+            title={status === "ALL" ? "No orders yet." : `No ${status.toLowerCase()} orders.`}
+            hint={status === "ALL" ? "Place a paper trade from a stock page." : "Try a different status filter."}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-170 text-left text-sm">

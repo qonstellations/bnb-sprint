@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { marketApi } from "../api/market.js";
 import { watchlistApi } from "../api/watchlist.js";
 import { queryKeys } from "../lib/queryClient.js";
+import { toast } from "../lib/toast.js";
+import { normalizeApiError } from "../lib/errors.js";
 import { formatCurrency, formatPercentage } from "../lib/format.js";
 import { EmptyState, ErrorState, Skeleton } from "./ui.jsx";
 
@@ -20,9 +22,13 @@ export default function Watchlist({ compact = false }) {
 
   const remove = useMutation({
     mutationFn: (symbol) => watchlistApi.remove(symbol),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
-      queryClient.invalidateQueries({ queryKey: ["quotes"] });
+    onSuccess: (_data, symbol) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.watchlist() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.quotes() });
+      toast.info(`${symbol} removed from watchlist.`);
+    },
+    onError: (err) => {
+      toast.error(normalizeApiError(err).message);
     },
   });
 

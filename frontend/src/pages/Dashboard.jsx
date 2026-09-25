@@ -1,5 +1,6 @@
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { portfolioApi } from "../api/portfolio.js";
 import { queryKeys } from "../lib/queryClient.js";
 import { formatCurrency, formatPnl, formatPercentage } from "../lib/format.js";
@@ -10,6 +11,9 @@ import { Card, EmptyState, ErrorState, Skeleton } from "../components/ui.jsx";
 
 // Dev1 dashboard per PLAN Sec 8: summary, holdings preview, performance, allocation, watchlist.
 export default function Dashboard() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusSearch = searchParams.get("focus") === "search";
+  const searchRef = useRef(null);
   const summary = useQuery({ queryKey: queryKeys.portfolioSummary(), queryFn: portfolioApi.summary });
   const positions = useQuery({ queryKey: queryKeys.positions(), queryFn: portfolioApi.positions });
   const performance = useQuery({
@@ -18,9 +22,19 @@ export default function Dashboard() {
   });
   const allocation = useQuery({ queryKey: queryKeys.portfolioAllocation(), queryFn: portfolioApi.allocation });
 
+  useEffect(() => {
+    if (focusSearch && searchRef.current) {
+      searchRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      // Clear the param so back/forward stays clean; focus is handled via autoFocus.
+      setSearchParams({}, { replace: true });
+    }
+  }, [focusSearch, setSearchParams]);
+
   return (
     <div className="space-y-6">
-      <StockSearch />
+      <div ref={searchRef} id="search" className="scroll-mt-20">
+        <StockSearch autoFocus={focusSearch} />
+      </div>
 
       {summary.isLoading ? (
         <Skeleton className="h-24" />

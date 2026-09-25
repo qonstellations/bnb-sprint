@@ -4,6 +4,8 @@ import { instrumentsApi } from "../api/instruments.js";
 import { marketApi } from "../api/market.js";
 import { watchlistApi } from "../api/watchlist.js";
 import { queryKeys } from "../lib/queryClient.js";
+import { toast } from "../lib/toast.js";
+import { normalizeApiError } from "../lib/errors.js";
 import { formatCurrency, formatPercentage } from "../lib/format.js";
 import PriceChart from "../components/PriceChart.jsx";
 import OrderForm from "../components/OrderForm.jsx";
@@ -28,8 +30,12 @@ export default function StockDetail() {
   const toggleWatch = useMutation({
     mutationFn: () => (watched ? watchlistApi.remove(symbol) : watchlistApi.add(symbol)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
-      queryClient.invalidateQueries({ queryKey: ["quotes"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.watchlist() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.quotes() });
+      toast.info(watched ? `${symbol} removed from watchlist.` : `${symbol} added to watchlist.`);
+    },
+    onError: (err) => {
+      toast.error(normalizeApiError(err).message);
     },
   });
 

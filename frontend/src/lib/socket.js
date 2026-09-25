@@ -3,6 +3,7 @@ import { io } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { getToken } from "../api/client.js";
 import { queryKeys } from "./queryClient.js";
+import { toast } from "./toast.js";
 
 // Socket.IO live feed per API.md: price:update, order:filled, portfolio:update, alert:triggered.
 // Real URL only (VITE_SOCKET_URL). No connection when URL is missing.
@@ -22,10 +23,16 @@ export function useLiveSocket() {
         queryClient.setQueryData(queryKeys.quote(payload.symbol), payload);
       }
     });
-    socket.on("order:filled", () => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["positions"] });
-      queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] });
+    socket.on("order:filled", (payload) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.positions() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.portfolioSummary() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.portfolioPerformance() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.portfolioAllocation() });
+      const summary = payload?.order
+        ? `${payload.order.side} ${payload.order.quantity} × ${payload.order.symbol} filled.`
+        : "Order filled.";
+      toast.success(summary);
     });
     socket.on("portfolio:update", (payload) => {
       if (payload) queryClient.setQueryData(queryKeys.portfolioSummary(), payload);

@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ordersApi } from "../api/orders.js";
 import { portfolioApi } from "../api/portfolio.js";
 import { normalizeApiError } from "../lib/errors.js";
+import { queryKeys } from "../lib/queryClient.js";
+import { toast } from "../lib/toast.js";
 import { formatCurrency } from "../lib/format.js";
 import { Button, Input, Modal } from "./ui.jsx";
 
@@ -18,7 +20,7 @@ export default function OrderForm({ symbol, currentPrice, currency = "USD" }) {
   const [formError, setFormError] = useState("");
 
   const { data: summary } = useQuery({
-    queryKey: ["portfolio-summary"],
+    queryKey: queryKeys.portfolioSummary(),
     queryFn: portfolioApi.summary,
   });
 
@@ -31,13 +33,23 @@ export default function OrderForm({ symbol, currentPrice, currency = "USD" }) {
 
   const mutation = useMutation({
     mutationFn: (body) => ordersApi.create(body),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       setConfirmOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["positions"] });
-      queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] });
-      queryClient.invalidateQueries({ queryKey: ["portfolio-performance"] });
-      queryClient.invalidateQueries({ queryKey: ["portfolio-allocation"] });
+      // Broad prefix invalidation: catches filtered variants (orders w/ status, perf w/ range).
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.positions() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.portfolioSummary() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.portfolioPerformance() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.portfolioAllocation() });
+      const status = data?.order?.status ?? (variables.type === "LIMIT" ? "OPEN" : "FILLED");
+      toast.success(
+        status === "OPEN"
+          ? `${variables.side} ${variables.quantity} × ${variables.symbol} placed (OPEN).`
+          : `${variables.side} ${variables.quantity} × ${variables.symbol} filled.`
+      );
+    },
+    onError: (err) => {
+      toast.error(normalizeApiError(err).message);
     },
   });
 

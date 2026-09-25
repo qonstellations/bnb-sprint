@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { useLiveSocket } from "../../lib/socket.js";
+import ToastHost from "../ToastHost.jsx";
 
 const links = [
   { to: "/dashboard", label: "Dashboard" },
@@ -69,7 +70,9 @@ export default function AppShell() {
           ))}
         </nav>
       </header>
-      <div id="toast-area" aria-live="polite" className="mx-auto max-w-6xl px-4" />
+      <div id="toast-area" aria-live="polite" className="mx-auto max-w-6xl px-4">
+        <ToastHost />
+      </div>
       <main className="mx-auto max-w-6xl px-4 py-6">
         <Outlet />
       </main>

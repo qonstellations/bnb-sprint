@@ -13,19 +13,20 @@ export const queryClient = new QueryClient({
 });
 
 export const queryKeys = {
-  instrument: (symbol) => ["instrument", symbol],
-  quote: (symbol) => ["quote", symbol],
+  instrument: (symbol) => (symbol ? ["instrument", symbol] : ["instrument"]),
+  instrumentSearch: (q) => (q ? ["instrument", "search", q] : ["instrument", "search"]),
+  quote: (symbol) => (symbol ? ["quote", symbol] : ["quote"]),
   history: (symbol, params) => ["history", symbol, params],
-  quotes: (symbols) => ["quotes", symbols],
-  orders: (filters) => ["orders", filters ?? "all"],
+  quotes: (symbols) => (symbols ? ["quotes", symbols] : ["quotes"]),
+  orders: (filters) => (filters ? ["orders", filters] : ["orders"]),
   positions: () => ["positions"],
   portfolioSummary: () => ["portfolio-summary"],
-  portfolioPerformance: (range) => ["portfolio-performance", range],
+  portfolioPerformance: (range) => (range ? ["portfolio-performance", range] : ["portfolio-performance"]),
   portfolioAllocation: () => ["portfolio-allocation"],
   watchlist: () => ["watchlist"],
   news: (symbol) => ["news", symbol ?? "all"],
-  sentiment: (symbol) => ["sentiment", symbol],
-  sentimentHistory: (symbol) => ["sentiment-history", symbol],
+  sentiment: (symbol) => (symbol ? ["sentiment", symbol] : ["sentiment"]),
+  sentimentHistory: (symbol) => (symbol ? ["sentiment-history", symbol] : ["sentiment-history"]),
   alerts: () => ["alerts"],
   alertRules: () => ["alert-rules"],
 };

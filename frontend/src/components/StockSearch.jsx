@@ -17,7 +17,7 @@ export default function StockSearch({ autoFocus = false, placeholder = "Search t
   }, [q]);
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: [...queryKeys.instrument("search"), debounced],
+    queryKey: queryKeys.instrumentSearch(debounced),
     queryFn: () => instrumentsApi.search(debounced),
     enabled: debounced.length > 0,
   });
