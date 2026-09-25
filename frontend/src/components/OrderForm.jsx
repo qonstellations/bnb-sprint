@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion, useReducedMotion } from "motion/react";
 import { ordersApi } from "../api/orders.js";
 import { portfolioApi } from "../api/portfolio.js";
 import { normalizeApiError } from "../lib/errors.js";
@@ -12,6 +13,7 @@ import { Button, Input, Modal } from "./ui.jsx";
 // limit price only for LIMIT, confirmation modal, post-trade invalidation.
 export default function OrderForm({ symbol, currentPrice, currency = "INR" }) {
   const queryClient = useQueryClient();
+  const reduce = useReducedMotion();
   const [side, setSide] = useState("BUY");
   const [type, setType] = useState("MARKET");
   const [quantity, setQuantity] = useState("1");
@@ -82,67 +84,117 @@ export default function OrderForm({ symbol, currentPrice, currency = "INR" }) {
 
   const serverError = mutation.error ? normalizeApiError(mutation.error).message : "";
 
+  const sideActiveClass =
+    side === "BUY"
+      ? "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/30"
+      : "bg-rose-500/15 text-rose-200 ring-1 ring-rose-500/30";
+
   return (
-    <form onSubmit={openConfirm} className="space-y-3">
-      <div className="grid grid-cols-2 gap-2" role="group" aria-label="Order side">
-        {["BUY", "SELL"].map((s) => (
-          <button
-            key={s}
-            type="button"
-            aria-pressed={side === s}
-            onClick={() => setSide(s)}
-            className={`min-h-11 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-indigo-500 ${
-              side === s
-                ? s === "BUY"
-                  ? "bg-emerald-700 text-white"
-                  : "bg-rose-700 text-white"
-                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-            }`}
-          >
-            {s}
-          </button>
-        ))}
+    <form onSubmit={openConfirm} className="space-y-4">
+      <div
+        className="grid grid-cols-2 gap-1 rounded-2xl bg-white/[0.03] p-1 ring-1 ring-white/10"
+        role="group"
+        aria-label="Order side"
+      >
+        {["BUY", "SELL"].map((s) => {
+          const active = side === s;
+          return (
+            <button
+              key={s}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setSide(s)}
+              className={`relative min-h-11 rounded-xl px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
+                active ? sideActiveClass : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              {active && !reduce ? (
+                <motion.span
+                  layoutId="order-side-active"
+                  transition={{ type: "spring", stiffness: 420, damping: 36 }}
+                  className={`absolute inset-0 rounded-xl ${side === "BUY" ? "bg-emerald-500/15 ring-1 ring-emerald-500/30" : "bg-rose-500/15 ring-1 ring-rose-500/30"}`}
+                  aria-hidden
+                />
+              ) : null}
+              <span className="relative">{s}</span>
+            </button>
+          );
+        })}
       </div>
-      <div className="grid grid-cols-2 gap-2" role="group" aria-label="Order type">
-        {["MARKET", "LIMIT"].map((t) => (
-          <button
-            key={t}
-            type="button"
-            aria-pressed={type === t}
-            onClick={() => setType(t)}
-            className={`min-h-11 rounded-lg px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-indigo-500 ${
-              type === t ? "bg-indigo-700 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
+      <div
+        className="grid grid-cols-2 gap-1 rounded-2xl bg-white/[0.03] p-1 ring-1 ring-white/10"
+        role="group"
+        aria-label="Order type"
+      >
+        {["MARKET", "LIMIT"].map((t) => {
+          const active = type === t;
+          return (
+            <button
+              key={t}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setType(t)}
+              className={`relative min-h-11 rounded-xl px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
+                active ? "bg-indigo-500/15 text-indigo-200 ring-1 ring-indigo-500/30" : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              {active && !reduce ? (
+                <motion.span
+                  layoutId="order-type-active"
+                  transition={{ type: "spring", stiffness: 420, damping: 36 }}
+                  className="absolute inset-0 rounded-xl bg-indigo-500/15 ring-1 ring-indigo-500/30"
+                  aria-hidden
+                />
+              ) : null}
+              <span className="relative">{t}</span>
+            </button>
+          );
+        })}
       </div>
       <Input
+        label="Quantity"
+        id="order-quantity"
+        name="order-quantity"
         type="number"
         min="1"
         step="1"
         value={quantity}
         onChange={(e) => setQuantity(e.target.value)}
-        placeholder="Quantity"
+        placeholder="1"
         aria-label="Quantity"
       />
       {type === "LIMIT" ? (
         <Input
+          label="Limit price"
+          id="order-limit-price"
+          name="order-limit-price"
           type="number"
           min="0"
           step="any"
           value={limitPrice}
           onChange={(e) => setLimitPrice(e.target.value)}
-          placeholder="Limit price"
+          placeholder="0.00"
           aria-label="Limit price"
         />
       ) : null}
-      <div className="text-xs text-slate-400">
-        <p>Price: {formatCurrency(currentPrice, currency)}</p>
-        {summary ? <p>Cash: {formatCurrency(summary.cash, currency)}</p> : null}
-        {estimated != null ? <p>Est. value: {formatCurrency(estimated, currency)}</p> : null}
-      </div>
+      <dl className="space-y-1.5 text-xs">
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-slate-500">Price</dt>
+          <dd className="font-mono tabular-nums text-slate-300">{formatCurrency(currentPrice, currency)}</dd>
+        </div>
+        {summary ? (
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-slate-500">Cash</dt>
+            <dd className="font-mono tabular-nums text-slate-300">{formatCurrency(summary.cash, currency)}</dd>
+          </div>
+        ) : null}
+        {estimated != null ? (
+          <div className="flex items-center justify-between gap-3 border-t border-white/5 pt-1.5">
+            <dt className="text-slate-500">Est. value</dt>
+            <dd className="font-mono tabular-nums text-white">{formatCurrency(estimated, currency)}</dd>
+          </div>
+        ) : null}
+      </dl>
       {formError ? <p className="text-xs text-rose-300">{formError}</p> : null}
       <Button type="submit" className="w-full">
         Review {side} {symbol}
@@ -150,10 +202,22 @@ export default function OrderForm({ symbol, currentPrice, currency = "INR" }) {
 
       <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Confirm order">
         <div className="space-y-1 text-sm">
-          <p>{side} {quantity} × {symbol} ({type})</p>
-          {type === "LIMIT" ? <p>Limit: {formatCurrency(Number(limitPrice), currency)}</p> : null}
-          {estimated != null ? <p>Est. value: {formatCurrency(estimated, currency)}</p> : null}
-          <p className="text-xs text-slate-400">Paper trade — virtual money only.</p>
+          <p className="text-slate-200">
+            {side} <span className="font-mono tabular-nums">{quantity}</span> ×{" "}
+            <span className="font-mono font-semibold">{symbol}</span>{" "}
+            <span className="text-slate-500">({type})</span>
+          </p>
+          {type === "LIMIT" ? (
+            <p className="text-slate-400">
+              Limit: <span className="font-mono tabular-nums text-slate-200">{formatCurrency(Number(limitPrice), currency)}</span>
+            </p>
+          ) : null}
+          {estimated != null ? (
+            <p className="text-slate-400">
+              Est. value: <span className="font-mono tabular-nums text-slate-200">{formatCurrency(estimated, currency)}</span>
+            </p>
+          ) : null}
+          <p className="text-xs text-slate-500">Paper trade — virtual money only.</p>
           {serverError ? <p className="text-xs text-rose-300">{serverError}</p> : null}
         </div>
         <div className="mt-4 flex gap-2">

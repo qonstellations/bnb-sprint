@@ -1,9 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+import { motion, useReducedMotion } from "motion/react";
+import { Activity } from "lucide-react";
 import { sentimentApi } from "../../api/sentiment.js";
 import { queryKeys } from "../../lib/queryClient.js";
 import { normalizeApiError } from "../../lib/errors.js";
 import { formatPercentage } from "../../lib/format.js";
-import { Badge, EmptyState, ErrorState, Skeleton } from "../ui.jsx";
+import { fadeUp } from "../../lib/motion.js";
+import { Badge, Card, EmptyState, ErrorState, Skeleton } from "../ui.jsx";
 
 function normalizeLabel(raw) {
   const v = String(raw ?? "").toUpperCase();
@@ -21,6 +24,7 @@ function toneFor(raw) {
 
 // Dev2: sentiment scorecard — GET /sentiment/:symbol, Bullish/Neutral/Bearish only.
 export default function SentimentScorecard({ symbol }) {
+  const reduce = useReducedMotion();
   const query = useQuery({
     queryKey: queryKeys.sentiment(symbol),
     queryFn: () => sentimentApi.get(symbol),
@@ -44,46 +48,82 @@ export default function SentimentScorecard({ symbol }) {
   const label = normalizeLabel(sentiment.label);
   const total =
     (breakdown?.bullish ?? 0) + (breakdown?.neutral ?? 0) + (breakdown?.bearish ?? 0);
+  const pct = (n) => (total > 0 ? ((n ?? 0) / total) * 100 : 0);
+  const rows = [
+    { key: "bullish", label: "Bullish", count: breakdown?.bullish ?? 0, bar: "bg-emerald-400" },
+    { key: "neutral", label: "Neutral", count: breakdown?.neutral ?? 0, bar: "bg-slate-400" },
+    { key: "bearish", label: "Bearish", count: breakdown?.bearish ?? 0, bar: "bg-rose-400" },
+  ];
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">Sentiment — {symbol}</h3>
-        <Badge tone={toneFor(sentiment.label)}>{label}</Badge>
-      </div>
-      <p className="text-2xl font-semibold">
-        {typeof sentiment.score === "number" ? sentiment.score.toFixed(2) : "—"}
-        <span className="ml-2 text-xs font-normal text-slate-400">score</span>
-      </p>
-      {breakdown ? (
-        <div className="space-y-1 text-xs text-slate-400">
-          <div className="flex h-2 overflow-hidden rounded-full bg-slate-800">
-            {total > 0 ? (
-              <>
-                <div
-                  className="bg-emerald-500"
-                  style={{ width: `${((breakdown.bullish ?? 0) / total) * 100}%` }}
-                />
-                <div
-                  className="bg-slate-500"
-                  style={{ width: `${((breakdown.neutral ?? 0) / total) * 100}%` }}
-                />
-                <div
-                  className="bg-rose-500"
-                  style={{ width: `${((breakdown.bearish ?? 0) / total) * 100}%` }}
-                />
-              </>
-            ) : null}
+    <motion.div variants={fadeUp} initial={reduce ? false : "hidden"} animate="show">
+      <Card>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5 text-slate-400 ring-1 ring-white/10">
+              <Activity size={14} aria-hidden />
+            </span>
+            <h3 className="font-display text-sm font-semibold text-white">
+              Sentiment — {symbol}
+            </h3>
           </div>
-          <p>
-            Bullish {breakdown.bullish ?? 0} · Neutral {breakdown.neutral ?? 0} ·
-            Bearish {breakdown.bearish ?? 0}
-            {articles != null ? ` · ${articles} articles` : ""}
-            {priceChange != null ? ` · price ${formatPercentage(priceChange)}` : ""}
-          </p>
+          <Badge tone={toneFor(sentiment.label)} dot>
+            {label}
+          </Badge>
         </div>
-      ) : null}
-      <p className="text-[11px] text-slate-500">Informational only — not investment advice.</p>
-    </div>
+
+        <p className="mt-4 font-display text-4xl font-semibold text-white">
+          <span className="font-mono tabular-nums">
+            {typeof sentiment.score === "number" ? sentiment.score.toFixed(2) : "—"}
+          </span>
+          <span className="ml-2 align-middle font-sans text-xs font-normal text-slate-500">
+            score
+          </span>
+        </p>
+
+        {breakdown ? (
+          <div className="mt-4 space-y-2.5">
+            {rows.map((r) => (
+              <div key={r.key}>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">{r.label}</span>
+                  <span className="font-mono tabular-nums text-slate-300">
+                    {pct(r.count).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/5">
+                  <motion.div
+                    className={`h-full rounded-full ${r.bar}`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct(r.count)}%` }}
+                    transition={{ duration: reduce ? 0 : 0.5, ease: "easeOut" }}
+                  />
+                </div>
+              </div>
+            ))}
+            <p className="pt-1 text-xs text-slate-500">
+              {articles != null ? (
+                <span>
+                  <span className="font-mono tabular-nums">{articles}</span> articles
+                </span>
+              ) : null}
+              {articles != null && priceChange != null ? <span> · </span> : null}
+              {priceChange != null ? (
+                <span>
+                  price{" "}
+                  <span className="font-mono tabular-nums">
+                    {formatPercentage(priceChange)}
+                  </span>
+                </span>
+              ) : null}
+            </p>
+          </div>
+        ) : null}
+
+        <p className="mt-4 text-[11px] leading-relaxed text-slate-500">
+          Informational only — not investment advice.
+        </p>
+      </Card>
+    </motion.div>
   );
 }
