@@ -2,24 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-slate-950 text-slate-100 antialiased;
+:root {
+  --sp-bg: #0a0e14;
+  --sp-panel: #10151d;
+  --sp-line: rgb(255 255 255 / 0.07);
+  color-scheme: dark;
 }
 
 html {
   scroll-behavior: smooth;
 }
 
+body {
+  @apply bg-ink-950 font-sans text-slate-100 antialiased;
+  text-rendering: optimizeLegibility;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 ::selection {
-  @apply bg-indigo-600/60 text-white;
+  @apply bg-accent-dim/60 text-white;
 }
 
 #root {
   min-height: 100vh;
+}
+
+/* Slim dark scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #283244 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #283244;
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer utilities {
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+  .card-line {
+    border: 1px solid var(--sp-line);
+  }
 }
