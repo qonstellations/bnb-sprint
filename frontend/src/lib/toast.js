@@ -28,3 +28,15 @@ export const toast = {
     return () => listeners.delete(fn);
   },
 };
+
+// Alert notifications (Dev2 path: socket alert:triggered + Alerts.jsx polling fallback).
+// Toast once per key via the same bus so ToastHost is the single renderer.
+const seen = new Set();
+
+export function pushToast(message, key) {
+  if (key) {
+    if (seen.has(key)) return null;
+    seen.add(key);
+  }
+  return toast.info(message);
+}

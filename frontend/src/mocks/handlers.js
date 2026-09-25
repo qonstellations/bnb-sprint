@@ -4,6 +4,31 @@ import { http, HttpResponse } from "msw";
 // Enable with VITE_USE_MOCKS=true. Extend per-feature as needed.
 const MOCK_TOKEN = "mock-jwt-token";
 
+// In-memory alert rules + sample news/sentiment so Dev2 flows are demoable.
+let ruleSeq = 1;
+const mockRules = [
+  { _id: "r1", symbol: "AAPL", type: "STOP_LOSS", triggerPrice: 5000, status: "ACTIVE", createdAt: new Date().toISOString() },
+];
+
+const mockArticles = [
+  {
+    headline: "Apple Reports Record Revenue",
+    source: "Reuters",
+    url: "https://example.com/apple-revenue",
+    publishedAt: new Date().toISOString(),
+    symbols: ["AAPL"],
+    sentiment: { label: "BULLISH", score: 0.78, confidence: 0.91 },
+  },
+  {
+    headline: "Market cools as tech rally pauses",
+    source: null,
+    url: null,
+    publishedAt: new Date(Date.now() - 86_400_000).toISOString(),
+    symbols: ["AAPL", "NVDA"],
+    sentiment: { label: "NEUTRAL", score: 0.05, confidence: 0.7 },
+  },
+];
+
 export const handlers = [
   http.post("*/auth/login", async () => {
     return HttpResponse.json({ user: { _id: "u1", email: "demo@stockpulse.dev" }, token: MOCK_TOKEN });
@@ -98,12 +123,53 @@ export const handlers = [
   http.post("*/orders/:id/cancel", ({ params }) => {
     return HttpResponse.json({ order: { _id: params.id, status: "CANCELLED" } });
   }),
-  http.get("*/alerts/rules", () => HttpResponse.json([])),
+  http.get("*/alerts/rules", () => HttpResponse.json(mockRules)),
+  http.post("*/alerts/rules", async ({ request }) => {
+    const body = await request.json();
+    const rule = {
+      _id: `r${++ruleSeq}`,
+      symbol: String(body.symbol ?? "").toUpperCase(),
+      type: body.type ?? "STOP_LOSS",
+      triggerPrice: Number(body.triggerPrice ?? 0),
+      status: "ACTIVE",
+      createdAt: new Date().toISOString(),
+    };
+    mockRules.push(rule);
+    return HttpResponse.json({ rule }, { status: 201 });
+  }),
+  http.patch("*/alerts/rules/:id", async ({ params, request }) => {
+    const body = await request.json();
+    const rule = mockRules.find((r) => r._id === params.id);
+    if (!rule) return HttpResponse.json({ error: { code: "NOT_FOUND", message: "Rule not found." } }, { status: 404 });
+    if (body.triggerPrice != null) rule.triggerPrice = Number(body.triggerPrice);
+    return HttpResponse.json(rule);
+  }),
+  http.delete("*/alerts/rules/:id", ({ params }) => {
+    const i = mockRules.findIndex((r) => r._id === params.id);
+    if (i >= 0) mockRules.splice(i, 1);
+    return new HttpResponse(null, { status: 204 });
+  }),
   http.get("*/alerts", () => HttpResponse.json([])),
-  http.get("*/news", () => HttpResponse.json({ articles: [], total: 0, page: 1 })),
-  http.get("*/news/:symbol", () => HttpResponse.json({ articles: [], total: 0, page: 1 })),
+  http.post("*/alerts/:id/read", () => HttpResponse.json({ acknowledged: true })),
+  http.get("*/news", () => HttpResponse.json({ articles: mockArticles, total: mockArticles.length, page: 1 })),
+  http.get("*/news/:symbol", ({ params }) => {
+    const sym = String(params.symbol ?? "").toUpperCase();
+    const filtered = mockArticles.filter((a) => (a.symbols ?? []).includes(sym));
+    return HttpResponse.json({ articles: filtered, total: filtered.length, page: 1 });
+  }),
   http.get("*/sentiment/:symbol", ({ params }) => {
     return HttpResponse.json({ symbol: params.symbol, sentiment: { label: "BULLISH", score: 0.71 }, breakdown: { bullish: 62, neutral: 25, bearish: 13 }, articles: 14, priceChange: 3.2 });
   }),
-  http.get("*/sentiment/:symbol/history", () => HttpResponse.json([])),
+  http.get("*/sentiment/:symbol/history", () => {
+    const now = Date.now();
+    const labels = ["BULLISH", "NEUTRAL", "BULLISH", "BEARISH", "NEUTRAL", "BULLISH", "NEUTRAL"];
+    return HttpResponse.json(
+      labels.map((label, i) => ({
+        timestamp: new Date(now - (6 - i) * 86_400_000).toISOString(),
+        label,
+        score: label === "BULLISH" ? 0.7 : label === "BEARISH" ? -0.6 : 0.05,
+        articles: 2 + i,
+      }))
+    );
+  }),
 ];
