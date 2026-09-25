@@ -14,9 +14,7 @@ Developer 1 owns the trading engine UI, portfolio dashboard, holdings, orders, a
 
 ## Product Context
 
-StockPulse is a paper-trading application intended to help users understand stock-market behavior by combining simulated trading with market information.
-
-The simplified MVP should support:
+StockPulse is a paper-trading application intended to help users understand stock-market behavior by combining simulated trading with market informatio simplified MVP should support:
 
 - Stock search
 - Stock detail view
