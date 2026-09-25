@@ -6,7 +6,7 @@ import { queryKeys } from "../lib/queryClient.js";
 import { toast } from "../lib/toast.js";
 import { normalizeApiError } from "../lib/errors.js";
 import { formatCurrency, formatPercentage } from "../lib/format.js";
-import { EmptyState, ErrorState, Skeleton } from "./ui.jsx";
+import { EmptyState, ErrorState, Skeleton, Button } from "./ui.jsx";
 
 // Dev1 watchlist per PLAN Sec 18. Uses bulk GET /market/quotes; no per-item quote spam.
 export default function Watchlist({ compact = false }) {
@@ -57,15 +57,16 @@ export default function Watchlist({ compact = false }) {
                 {formatPercentage(q.changePercent)}
               </span>
             ) : null}
-            <button
+            <Button
+              variant="link"
               type="button"
               disabled={remove.isPending}
               onClick={() => remove.mutate(symbol)}
-              className="ml-auto text-xs text-slate-500 hover:text-rose-300"
               aria-label={`Remove ${symbol}`}
+              className="ml-auto min-h-11 no-underline hover:underline"
             >
               Remove
-            </button>
+            </Button>
           </li>
         );
       })}

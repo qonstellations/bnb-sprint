@@ -1,7 +1,17 @@
-export function Button({ className = "", ...props }) {
+import { useEffect, useRef } from "react";
+
+const BUTTON_VARIANTS = {
+  primary: "bg-indigo-600 text-white hover:bg-indigo-500",
+  secondary: "bg-slate-700 text-slate-100 hover:bg-slate-600",
+  danger: "bg-rose-700 text-white hover:bg-rose-600",
+  ghost: "border border-slate-700 text-slate-200 hover:bg-slate-800",
+  link: "px-2 py-1 text-xs text-rose-300 underline hover:text-rose-200",
+};
+
+export function Button({ variant = "primary", className = "", ...props }) {
   return (
     <button
-      className={`rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 ${BUTTON_VARIANTS[variant] ?? BUTTON_VARIANTS.primary} ${className}`}
       {...props}
     />
   );
@@ -42,7 +52,7 @@ export function Badge({ tone = "neutral", className = "", ...props }) {
 
 export function Skeleton({ className = "", ...props }) {
   return (
-    <div className={`animate-pulse rounded-lg bg-slate-800 ${className}`} {...props} />
+    <div aria-busy="true" className={`animate-pulse rounded-lg bg-slate-800 ${className}`} {...props} />
   );
 }
 
@@ -73,10 +83,38 @@ export function ErrorState({ message, onRetry }) {
 }
 
 export function Modal({ open, onClose, title, children }) {
+  const panelRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const panel = panelRef.current;
+    panel?.querySelector("button")?.focus();
+    function onKey(e) {
+      if (e.key === "Escape") onClose?.();
+    }
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [open, onClose]);
+
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-5">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose?.();
+      }}
+    >
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl"
+      >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-semibold">{title}</h2>
           <button

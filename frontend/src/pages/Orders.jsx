@@ -6,7 +6,7 @@ import { queryKeys } from "../lib/queryClient.js";
 import { normalizeApiError } from "../lib/errors.js";
 import { toast } from "../lib/toast.js";
 import { formatCurrency, formatDateTime } from "../lib/format.js";
-import { Badge, Card, EmptyState, ErrorState, Modal, Skeleton } from "../components/ui.jsx";
+import { Badge, Button, Card, EmptyState, ErrorState, Modal, Skeleton } from "../components/ui.jsx";
 
 // Dev1 orders page per PLAN Sec 15. Status enums follow API.md; only OPEN is cancellable.
 const STATUS_FILTERS = ["ALL", "OPEN", "FILLED", "CANCELLED"];
@@ -64,22 +64,22 @@ export default function Orders() {
             hint={status === "ALL" ? "Place a paper trade from a stock page." : "Try a different status filter."}
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-170 text-left text-sm">
-              <thead className="text-xs text-slate-500">
-                <tr><th className="py-1">Time</th><th>Symbol</th><th>Side</th><th>Type</th><th>Qty</th><th>Price</th><th>Status</th><th /></tr>
+          <div className="-mx-4 overflow-x-auto px-4">
+            <table className="w-full min-w-170 text-left text-sm tabular-nums">
+              <thead className="sticky top-0 text-xs uppercase tracking-wide text-slate-500">
+                <tr><th className="py-2 pr-3">Time</th><th className="pr-3">Symbol</th><th className="pr-3">Side</th><th className="pr-3">Type</th><th className="pr-3 text-right">Qty</th><th className="pr-3 text-right">Price</th><th className="pr-3">Status</th><th><span className="sr-only">Actions</span></th></tr>
               </thead>
               <tbody>
                 {orders.map((o) => (
-                  <tr key={o._id} className="border-t border-slate-800">
-                    <td className="py-2 text-xs">{formatDateTime(o.createdAt)}</td>
-                    <td><Link to={`/stocks/${o.symbol}`} className="font-medium hover:underline">{o.symbol}</Link></td>
-                    <td>{o.side}</td>
-                    <td>{o.type}</td>
-                    <td>{o.quantity}</td>
-                    <td>{formatCurrency(o.averageFillPrice ?? o.limitPrice)}</td>
-                    <td><Badge tone={o.status === "FILLED" ? "positive" : o.status === "OPEN" ? "info" : "neutral"}>{o.status}</Badge></td>
-                    <td>{o.status === "OPEN" ? <button type="button" onClick={() => { cancel.reset(); setConfirmId(o._id); }} className="text-xs text-rose-300 underline">Cancel</button> : null}</td>
+                  <tr key={o._id} className="border-t border-slate-800 hover:bg-slate-800/40">
+                    <td className="py-2 pr-3 text-xs text-slate-400">{formatDateTime(o.createdAt)}</td>
+                    <td className="pr-3"><Link to={`/stocks/${o.symbol}`} className="rounded font-medium hover:underline focus-visible:outline-2 focus-visible:outline-indigo-500">{o.symbol}</Link></td>
+                    <td className={`pr-3 font-medium ${o.side === "BUY" ? "text-emerald-300" : "text-rose-300"}`}>{o.side}</td>
+                    <td className="pr-3 text-slate-300">{o.type}</td>
+                    <td className="pr-3 text-right">{o.quantity}</td>
+                    <td className="pr-3 text-right">{formatCurrency(o.averageFillPrice ?? o.limitPrice)}</td>
+                    <td className="pr-3"><Badge tone={o.status === "FILLED" ? "positive" : o.status === "OPEN" ? "info" : "neutral"}>{o.status}</Badge></td>
+                    <td>{o.status === "OPEN" ? <Button variant="link" type="button" onClick={() => { cancel.reset(); setConfirmId(o._id); }}>Cancel</Button> : null}</td>
                   </tr>
                 ))}
               </tbody>
@@ -92,10 +92,10 @@ export default function Orders() {
         <p className="text-sm text-slate-300">Only OPEN limit orders can be cancelled.</p>
         {cancel.error ? <p className="mt-2 text-xs text-rose-300">{normalizeApiError(cancel.error).message}</p> : null}
         <div className="mt-4 flex gap-2">
-          <button type="button" onClick={() => setConfirmId(null)} className="flex-1 rounded-lg bg-slate-700 px-3 py-2 text-sm">Keep</button>
-          <button type="button" disabled={cancel.isPending} onClick={() => cancel.mutate(confirmId)} className="flex-1 rounded-lg bg-rose-700 px-3 py-2 text-sm text-white">
+          <Button variant="secondary" type="button" onClick={() => setConfirmId(null)} className="flex-1">Keep</Button>
+          <Button variant="danger" type="button" disabled={cancel.isPending} onClick={() => cancel.mutate(confirmId)} className="flex-1">
             {cancel.isPending ? "Cancelling…" : "Cancel order"}
-          </button>
+          </Button>
         </div>
       </Modal>
     </div>

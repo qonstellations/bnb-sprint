@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { instrumentsApi } from "../api/instruments.js";
 import { queryKeys } from "../lib/queryClient.js";
-import { Input } from "./ui.jsx";
+import { EmptyState, ErrorState, Input, Skeleton } from "./ui.jsx";
 
 // Single reusable search per PLAN Sec 9. Debounced, navigates to /stocks/:symbol.
 export default function StockSearch({ autoFocus = false, placeholder = "Search ticker or company…" }) {
@@ -32,16 +32,18 @@ export default function StockSearch({ autoFocus = false, placeholder = "Search t
         aria-label="Search stocks"
       />
       {debounced.length === 0 ? null : isLoading ? (
-        <p className="mt-2 text-xs text-slate-500">Searching…</p>
+        <div className="mt-2 space-y-1.5" aria-busy="true" aria-label="Searching stocks">
+          <Skeleton className="h-10" />
+          <Skeleton className="h-10" />
+        </div>
       ) : isError ? (
-        <p className="mt-2 text-xs text-rose-300">
-          Search failed.{" "}
-          <button type="button" className="underline" onClick={() => refetch()}>
-            Retry
-          </button>
-        </p>
+        <div className="mt-2">
+          <ErrorState message="Search failed. Please retry." onRetry={() => refetch()} />
+        </div>
       ) : data?.length === 0 ? (
-        <p className="mt-2 text-xs text-slate-500">No results for “{debounced}”.</p>
+        <div className="mt-2">
+          <EmptyState title={`No results for “${debounced}”.`} hint="Try a ticker like AAPL or a company name." />
+        </div>
       ) : (
         <ul className="mt-2 divide-y divide-slate-800 rounded-xl border border-slate-800">
           {(data ?? []).map((item) => (

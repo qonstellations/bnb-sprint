@@ -7,7 +7,8 @@ import { formatCurrency, formatPnl, formatPercentage } from "../lib/format.js";
 import StockSearch from "../components/StockSearch.jsx";
 import Watchlist from "../components/Watchlist.jsx";
 import PriceChart from "../components/PriceChart.jsx";
-import { Card, EmptyState, ErrorState, Skeleton } from "../components/ui.jsx";
+import AllocationBars from "../components/AllocationBars.jsx";
+import { Badge, Card, EmptyState, ErrorState, Skeleton } from "../components/ui.jsx";
 
 // Dev1 dashboard per PLAN Sec 8: summary, holdings preview, performance, allocation, watchlist.
 export default function Dashboard() {
@@ -42,32 +43,37 @@ export default function Dashboard() {
         <ErrorState message="Portfolio summary failed to load." onRetry={() => summary.refetch()} />
       ) : summary.data ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Card><p className="text-xs text-slate-500">Total value</p><p className="text-lg font-semibold">{formatCurrency(summary.data.totalValue)}</p></Card>
-          <Card><p className="text-xs text-slate-500">Cash</p><p className="text-lg font-semibold">{formatCurrency(summary.data.cash)}</p></Card>
-          <Card><p className="text-xs text-slate-500">Total P&L</p><p className="text-lg font-semibold">{formatPnl(summary.data.totalReturn)} ({formatPercentage(summary.data.returnPercent)})</p></Card>
-          <Card><p className="text-xs text-slate-500">Positions</p><p className="text-lg font-semibold">{positions.data?.length ?? 0}</p></Card>
+          <Card><p className="text-xs uppercase tracking-wide text-slate-500">Total value</p><p className="mt-1 text-lg font-semibold tabular-nums text-white">{formatCurrency(summary.data.totalValue)}</p></Card>
+          <Card><p className="text-xs uppercase tracking-wide text-slate-500">Cash</p><p className="mt-1 text-lg font-semibold tabular-nums text-white">{formatCurrency(summary.data.cash)}</p></Card>
+          <Card>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Total P&L</p>
+            <p className={`mt-1 text-lg font-semibold tabular-nums ${Number(summary.data.totalReturn) >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+              {formatPnl(summary.data.totalReturn)} <span className="text-sm font-normal">({formatPercentage(summary.data.returnPercent)})</span>
+            </p>
+          </Card>
+          <Card><p className="text-xs uppercase tracking-wide text-slate-500">Positions</p><p className="mt-1 text-lg font-semibold tabular-nums text-white">{positions.data?.length ?? 0}</p></Card>
         </div>
       ) : null}
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
-          <h2 className="mb-2 text-sm font-semibold">Performance</h2>
-          {performance.isLoading ? <Skeleton className="h-40" /> : performance.data?.dailyReturns ? (
-            <PriceChart data={performance.data.dailyReturns} />
-          ) : <EmptyState title="No performance data yet." />}
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-white">Performance</h2>
+            <Badge tone="neutral">1M</Badge>
+          </div>
+          {performance.isLoading ? <Skeleton className="h-40" /> : performance.isError ? (
+            <ErrorState message="Performance failed to load." onRetry={() => performance.refetch()} />
+          ) : performance.data?.dailyReturns?.length ? (
+            <PriceChart data={performance.data.dailyReturns} heightClass="h-48" />
+          ) : <EmptyState title="No performance data yet." hint="Data appears after your first trade settles." />}
         </Card>
         <Card>
-          <h2 className="mb-2 text-sm font-semibold">Allocation</h2>
-          {allocation.isLoading ? <Skeleton className="h-40" /> : allocation.data?.length ? (
-            <ul className="space-y-1 text-sm">
-              {allocation.data.map((a) => (
-                <li key={a.symbol ?? a.category} className="flex justify-between">
-                  <span>{a.symbol ?? a.category}</span>
-                  <span className="text-slate-400">{formatCurrency(a.value)} ({a.percent}%)</span>
-                </li>
-              ))}
-            </ul>
-          ) : <EmptyState title="No allocation data yet." />}
+          <h2 className="mb-3 text-sm font-semibold text-white">Allocation</h2>
+          {allocation.isError ? (
+            <ErrorState message="Allocation failed to load." onRetry={() => allocation.refetch()} />
+          ) : (
+            <AllocationBars data={allocation.data} isLoading={allocation.isLoading} />
+          )}
         </Card>
       </div>
 
@@ -81,9 +87,14 @@ export default function Dashboard() {
         ) : positions.data?.length ? (
           <ul className="divide-y divide-slate-800 text-sm">
             {positions.data.slice(0, 5).map((p) => (
-              <li key={p.symbol} className="flex justify-between py-2">
-                <Link to={`/stocks/${p.symbol}`} className="font-medium hover:underline">{p.symbol}</Link>
-                <span className="text-slate-400">{p.quantity} × {formatCurrency(p.currentPrice)} · {formatPnl(p.unrealizedPnl)} ({formatPercentage(p.unrealizedPnlPercent)})</span>
+              <li key={p.symbol} className="flex items-baseline justify-between gap-2 py-2">
+                <Link to={`/stocks/${p.symbol}`} className="rounded font-medium hover:underline focus-visible:outline-2 focus-visible:outline-indigo-500">{p.symbol}</Link>
+                <span className="text-right tabular-nums text-slate-400">
+                  {p.quantity} × {formatCurrency(p.currentPrice)} ·{" "}
+                  <span className={Number(p.unrealizedPnl) >= 0 ? "text-emerald-300" : "text-rose-300"}>
+                    {formatPnl(p.unrealizedPnl)} ({formatPercentage(p.unrealizedPnlPercent)})
+                  </span>
+                </span>
               </li>
             ))}
           </ul>

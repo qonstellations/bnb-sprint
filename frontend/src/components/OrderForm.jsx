@@ -83,32 +83,34 @@ export default function OrderForm({ symbol, currentPrice, currency = "USD" }) {
 
   return (
     <form onSubmit={openConfirm} className="space-y-3">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2" role="group" aria-label="Order side">
         {["BUY", "SELL"].map((s) => (
           <button
             key={s}
             type="button"
+            aria-pressed={side === s}
             onClick={() => setSide(s)}
-            className={`rounded-lg px-3 py-2 text-sm font-medium ${
+            className={`min-h-11 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-indigo-500 ${
               side === s
                 ? s === "BUY"
                   ? "bg-emerald-700 text-white"
                   : "bg-rose-700 text-white"
-                : "bg-slate-800 text-slate-300"
+                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
             }`}
           >
             {s}
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2" role="group" aria-label="Order type">
         {["MARKET", "LIMIT"].map((t) => (
           <button
             key={t}
             type="button"
+            aria-pressed={type === t}
             onClick={() => setType(t)}
-            className={`rounded-lg px-3 py-2 text-sm ${
-              type === t ? "bg-indigo-700 text-white" : "bg-slate-800 text-slate-300"
+            className={`min-h-11 rounded-lg px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-indigo-500 ${
+              type === t ? "bg-indigo-700 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
             }`}
           >
             {t}
@@ -155,9 +157,10 @@ export default function OrderForm({ symbol, currentPrice, currency = "USD" }) {
         </div>
         <div className="mt-4 flex gap-2">
           <Button
+            variant="secondary"
             type="button"
             onClick={() => setConfirmOpen(false)}
-            className="flex-1 bg-slate-700 hover:bg-slate-600"
+            className="flex-1"
           >
             Cancel
           </Button>
