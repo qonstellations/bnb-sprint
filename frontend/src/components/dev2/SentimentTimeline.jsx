@@ -9,6 +9,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { CartesianGrid } from "recharts";
+import { useReducedMotion } from "motion/react";
 import { marketApi } from "../../api/market.js";
 import { sentimentApi } from "../../api/sentiment.js";
 import { queryKeys } from "../../lib/queryClient.js";
@@ -24,7 +26,7 @@ function TimelineTooltip({ active, payload, label }) {
   const row = payload[0]?.payload;
   if (!row) return null;
   return (
-    <div className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs">
+    <div className="rounded-xl border border-white/10 bg-ink-900 px-3 py-2 text-xs shadow-card backdrop-blur">
       <p className="font-medium text-slate-200">{label}</p>
       {row.close != null ? <p className="text-slate-400">Close: {row.close}</p> : null}
       {row.sentimentLabel ? (
@@ -43,6 +45,7 @@ function TimelineTooltip({ active, payload, label }) {
 // Dev2: price + sentiment timeline — GET /market/history + /sentiment/:symbol/history.
 // Markers show association only; sentiment does not predict price.
 export default function SentimentTimeline({ symbol }) {
+  const reduce = useReducedMotion();
   const price = useQuery({
     queryKey: queryKeys.history(symbol, { range: "1m" }),
     queryFn: () => marketApi.history(symbol, { range: "1m", interval: "1d" }),
@@ -91,20 +94,40 @@ export default function SentimentTimeline({ symbol }) {
   }
 
   return (
-    <div className="space-y-2">
-      <h3 className="text-sm font-semibold">Price + sentiment — {symbol}</h3>
+    <div className="space-y-3">
+      <h3 className="font-display text-sm font-semibold text-white">Price + sentiment — {symbol}</h3>
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={rows}>
-            <XAxis dataKey="t" tick={{ fontSize: 11 }} minTickGap={32} />
-            <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} width={60} />
-            <Tooltip content={<TimelineTooltip />} />
+          <ComposedChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+            <CartesianGrid stroke="rgb(255 255 255 / 0.06)" strokeDasharray="3 3" vertical={false} />
+            <XAxis
+              dataKey="t"
+              tick={{ fontSize: 11, fill: "#7d8aa0" }}
+              tickLine={false}
+              axisLine={false}
+              minTickGap={32}
+            />
+            <YAxis
+              tick={{ fontSize: 11, fill: "#7d8aa0" }}
+              tickLine={false}
+              axisLine={false}
+              domain={["auto", "auto"]}
+              width={56}
+            />
+            <Tooltip
+              content={<TimelineTooltip />}
+              cursor={{ stroke: "rgb(255 255 255 / 0.15)" }}
+            />
             <Line
               type="monotone"
               dataKey="close"
               stroke="#818cf8"
+              strokeWidth={2}
               dot={false}
               name="Close"
+              isAnimationActive={!reduce}
+              animationDuration={700}
+              animationEasing="ease-out"
             />
             <Scatter dataKey="marker" fill="#fbbf24" name="Sentiment" />
           </ComposedChart>
