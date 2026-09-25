@@ -12,6 +12,8 @@ export const queryClient = new QueryClient({
   },
 });
 
+// No-arg helpers return the base prefix, so invalidateQueries() without args
+// matches every filtered variant (TanStack matches by key prefix when exact is unset).
 export const queryKeys = {
   instrument: (symbol) => (symbol ? ["instrument", symbol] : ["instrument"]),
   instrumentSearch: (q) => (q ? ["instrument", "search", q] : ["instrument", "search"]),

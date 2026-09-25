@@ -20,8 +20,6 @@ export default function ToastHost() {
         window.setTimeout(() => toast.dismiss(event.toast.id), DISMISS_MS);
       } else if (event.type === "dismiss") {
         setItems((prev) => prev.filter((t) => t.id !== event.id));
-      } else if (event.type === "clear") {
-        setItems([]);
       }
     });
   }, []);

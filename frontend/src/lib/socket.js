@@ -18,6 +18,7 @@ export function useLiveSocket() {
     const socket = io(url, { auth: { token: getToken() } });
     socketRef.current = socket;
 
+    // setQueryData (not invalidate): price ticks arrive continuously, refetching per tick would storm the API.
     socket.on("price:update", (payload) => {
       if (payload?.symbol) {
         queryClient.setQueryData(queryKeys.quote(payload.symbol), payload);
@@ -29,6 +30,7 @@ export function useLiveSocket() {
       queryClient.invalidateQueries({ queryKey: queryKeys.portfolioSummary() });
       queryClient.invalidateQueries({ queryKey: queryKeys.portfolioPerformance() });
       queryClient.invalidateQueries({ queryKey: queryKeys.portfolioAllocation() });
+    // Fallback copy: some servers emit order:filled with no payload, still worth a toast.
       const summary = payload?.order
         ? `${payload.order.side} ${payload.order.quantity} × ${payload.order.symbol} filled.`
         : "Order filled.";

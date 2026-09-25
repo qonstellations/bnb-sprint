@@ -35,7 +35,6 @@ export default function OrderForm({ symbol, currentPrice, currency = "USD" }) {
     mutationFn: (body) => ordersApi.create(body),
     onSuccess: (data, variables) => {
       setConfirmOpen(false);
-      // Broad prefix invalidation: catches filtered variants (orders w/ status, perf w/ range).
       queryClient.invalidateQueries({ queryKey: queryKeys.orders() });
       queryClient.invalidateQueries({ queryKey: queryKeys.positions() });
       queryClient.invalidateQueries({ queryKey: queryKeys.portfolioSummary() });
@@ -57,6 +56,7 @@ export default function OrderForm({ symbol, currentPrice, currency = "USD" }) {
     e.preventDefault();
     setFormError("");
     if (!qty || qty <= 0 || !Number.isInteger(qty)) {
+      // Backend rejects fractional shares; catch it here so the modal never opens invalid.
       setFormError("Quantity must be a positive whole number.");
       return;
     }
@@ -75,6 +75,7 @@ export default function OrderForm({ symbol, currentPrice, currency = "USD" }) {
       type,
       quantity: qty,
       limitPrice: type === "LIMIT" ? Number(limitPrice) : null,
+      // Fresh id per confirm: safe retry after DUPLICATE_ORDER gets a new identity.
       clientOrderId: `order_${Date.now()}_${Math.floor(Math.random() * 1e6)}`,
     });
   }

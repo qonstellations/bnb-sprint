@@ -15,6 +15,8 @@ function ChartTooltip({ active, payload, label, currency = "USD" }) {
 
 export default function PriceChart({ data, currency = "USD", heightClass = "h-64" }) {
   if (!data?.length) return null;
+  // Two endpoints share this chart with different shapes: market history uses
+  // timestamp/close, portfolio performance uses date/value. Normalize once here.
   const rows = data.map((d) => ({
     t: new Date(d.timestamp ?? d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     price: d.close ?? d.value ?? d.portfolioValue,

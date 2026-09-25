@@ -26,7 +26,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (focusSearch && searchRef.current) {
       searchRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-      // Clear the param so back/forward stays clean; focus is handled via autoFocus.
+      // replace:true keeps ?focus=search out of history so Back never re-triggers the scroll.
       setSearchParams({}, { replace: true });
     }
   }, [focusSearch, setSearchParams]);
