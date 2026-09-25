@@ -1,0 +1,2 @@
+// Trading controller
+module.exports = {};

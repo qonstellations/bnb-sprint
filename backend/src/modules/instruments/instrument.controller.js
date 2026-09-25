@@ -1,0 +1,2 @@
+// Instrument controller
+module.exports = {};

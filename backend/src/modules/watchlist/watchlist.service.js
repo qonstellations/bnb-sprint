@@ -1,0 +1,2 @@
+// Watchlist service
+module.exports = {};

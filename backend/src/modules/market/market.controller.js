@@ -1,0 +1,2 @@
+// Market controller
+module.exports = {};

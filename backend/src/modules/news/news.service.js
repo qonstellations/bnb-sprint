@@ -1,0 +1,2 @@
+// News service
+module.exports = {};

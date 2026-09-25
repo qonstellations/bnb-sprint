@@ -1,0 +1,12 @@
+{
+  "name": "stockpulse-backend",
+  "version": "1.0.0",
+  "description": "StockPulse - Simulated financial state machine driven by market events",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

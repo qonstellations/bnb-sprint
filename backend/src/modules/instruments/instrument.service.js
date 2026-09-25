@@ -1,0 +1,2 @@
+// Instrument service
+module.exports = {};
