@@ -1,6 +1,118 @@
-import { EmptyState } from "../ui.jsx";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  ComposedChart,
+  Line,
+  ResponsiveContainer,
+  Scatter,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { marketApi } from "../../api/market.js";
+import { sentimentApi } from "../../api/sentiment.js";
+import { queryKeys } from "../../lib/queryClient.js";
+import { normalizeApiError } from "../../lib/errors.js";
+import { EmptyState, ErrorState, Skeleton } from "../ui.jsx";
 
-// Dev2-owned slot: price + sentiment timeline (GET /market/history + /sentiment/:symbol/history).
+function dayKey(value) {
+  return new Date(value).toLocaleDateString();
+}
+
+function TimelineTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  const row = payload[0]?.payload;
+  if (!row) return null;
+  return (
+    <div className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs">
+      <p className="font-medium text-slate-200">{label}</p>
+      {row.close != null ? <p className="text-slate-400">Close: {row.close}</p> : null}
+      {row.sentimentLabel ? (
+        <p className="text-slate-300">
+          {row.sentimentLabel}
+          {typeof row.sentimentScore === "number" ? ` (${row.sentimentScore.toFixed(2)})` : ""}
+          {row.sentimentArticles != null ? ` · ${row.sentimentArticles} articles` : ""}
+        </p>
+      ) : (
+        <p className="text-slate-500">No sentiment marker</p>
+      )}
+    </div>
+  );
+}
+
+// Dev2: price + sentiment timeline — GET /market/history + /sentiment/:symbol/history.
+// Markers show association only; sentiment does not predict price.
 export default function SentimentTimeline({ symbol }) {
-  return <EmptyState title={`Price + sentiment timeline — ${symbol}`} hint="Developer 2: build synchronized timeline here." />;
+  const price = useQuery({
+    queryKey: queryKeys.history(symbol, { range: "1m" }),
+    queryFn: () => marketApi.history(symbol, { range: "1m", interval: "1d" }),
+    enabled: !!symbol,
+  });
+  const sentiment = useQuery({
+    queryKey: queryKeys.sentimentHistory(symbol),
+    queryFn: () => sentimentApi.history(symbol, { range: "7d" }),
+    enabled: !!symbol,
+  });
+
+  const rows = useMemo(() => {
+    const prices = Array.isArray(price.data) ? price.data : [];
+    const moods = Array.isArray(sentiment.data) ? sentiment.data : [];
+    const moodByDay = new Map(moods.map((m) => [dayKey(m.timestamp), m]));
+    return prices.map((p) => {
+      const mood = moodByDay.get(dayKey(p.timestamp ?? p.date));
+      return {
+        t: dayKey(p.timestamp ?? p.date),
+        close: p.close ?? p.value ?? null,
+        sentimentLabel: mood
+          ? String(mood.label ?? "").charAt(0) + String(mood.label ?? "").slice(1).toLowerCase()
+          : null,
+        sentimentScore: mood?.score ?? null,
+        sentimentArticles: mood?.articles ?? null,
+        // Scatter marker sits on the price line where a sentiment reading exists.
+        marker: mood ? (p.close ?? p.value ?? null) : null,
+      };
+    });
+  }, [price.data, sentiment.data]);
+
+  if (price.isLoading || sentiment.isLoading) return <Skeleton className="h-64" />;
+  if (price.isError || sentiment.isError) {
+    return (
+      <ErrorState
+        message={normalizeApiError(price.error ?? sentiment.error).message}
+        onRetry={() => {
+          price.refetch();
+          sentiment.refetch();
+        }}
+      />
+    );
+  }
+  if (rows.length === 0) {
+    return <EmptyState title={`No timeline for ${symbol}.`} />;
+  }
+
+  return (
+    <div className="space-y-2">
+      <h3 className="text-sm font-semibold">Price + sentiment — {symbol}</h3>
+      <div className="h-64 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={rows}>
+            <XAxis dataKey="t" tick={{ fontSize: 11 }} minTickGap={32} />
+            <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} width={60} />
+            <Tooltip content={<TimelineTooltip />} />
+            <Line
+              type="monotone"
+              dataKey="close"
+              stroke="#818cf8"
+              dot={false}
+              name="Close"
+            />
+            <Scatter dataKey="marker" fill="#fbbf24" name="Sentiment" />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+      <p className="text-[11px] text-slate-500">
+        Dots mark days with sentiment readings. Association only — not predictive.
+      </p>
+    </div>
+  );
 }
