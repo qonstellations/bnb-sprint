@@ -1,5 +1,5 @@
-// Shared financial formatting per PLAN Sec 31. Currency follows API `currency` (default USD).
-export function formatCurrency(value, currency = "USD") {
+// Shared financial formatting per PLAN Sec 31. Currency follows API `currency` (default INR).
+export function formatCurrency(value, currency = "INR") {
   if (value == null || Number.isNaN(Number(value))) return "—";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -29,7 +29,7 @@ export function formatDateTime(value) {
 }
 
 // Unambiguous P&L: +$142.30 / -$53.10
-export function formatPnl(value, currency = "USD") {
+export function formatPnl(value, currency = "INR") {
   if (value == null) return "—";
   const formatted = formatCurrency(Math.abs(value), currency);
   if (Number(value) > 0) return `+${formatted}`;

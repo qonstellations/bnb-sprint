@@ -10,7 +10,7 @@ import { Button, Input, Modal } from "./ui.jsx";
 
 // Dev1 trading panel per PLAN Sec 13-14: BUY/SELL, MARKET/LIMIT, quantity,
 // limit price only for LIMIT, confirmation modal, post-trade invalidation.
-export default function OrderForm({ symbol, currentPrice, currency = "USD" }) {
+export default function OrderForm({ symbol, currentPrice, currency = "INR" }) {
   const queryClient = useQueryClient();
   const [side, setSide] = useState("BUY");
   const [type, setType] = useState("MARKET");

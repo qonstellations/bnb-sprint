@@ -48,7 +48,7 @@ export default function StockDetail() {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h1 className="truncate text-xl font-bold text-white">{instrument.data?.name} <span className="font-medium text-slate-500">({instrument.data?.symbol})</span></h1>
-              <p className="mt-0.5 text-xs text-slate-500">{instrument.data?.exchange} · {instrument.data?.sector} · {instrument.data?.currency ?? "USD"}</p>
+              <p className="mt-0.5 text-xs text-slate-500">{instrument.data?.exchange} · {instrument.data?.sector} · {instrument.data?.currency ?? "INR"}</p>
               {quote.isLoading ? (
                 <Skeleton className="mt-2 h-8 w-44" />
               ) : quote.isError ? (

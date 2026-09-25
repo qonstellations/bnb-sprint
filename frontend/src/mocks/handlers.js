@@ -50,7 +50,7 @@ export const handlers = [
   }),
   http.get("*/instruments/:symbol", ({ params }) => {
     const { symbol } = params;
-    return HttpResponse.json({ symbol, name: `${symbol} Inc.`, exchange: "NASDAQ", currency: "USD", sector: "Technology" });
+    return HttpResponse.json({ symbol, name: `${symbol} Inc.`, exchange: "NSE", currency: "INR", sector: "Technology" });
   }),
   http.get("*/market/quote/:symbol", ({ params }) => {
     const { symbol } = params;

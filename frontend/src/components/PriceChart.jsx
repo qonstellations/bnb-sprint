@@ -2,7 +2,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { formatCurrency } from "../lib/format.js";
 
 // Minimal interactive price chart per PLAN Sec 12. No indicators.
-function ChartTooltip({ active, payload, label, currency = "USD" }) {
+function ChartTooltip({ active, payload, label, currency = "INR" }) {
   if (!active || !payload?.length) return null;
   const v = payload[0]?.value;
   return (
@@ -13,7 +13,7 @@ function ChartTooltip({ active, payload, label, currency = "USD" }) {
   );
 }
 
-export default function PriceChart({ data, currency = "USD", heightClass = "h-64" }) {
+export default function PriceChart({ data, currency = "INR", heightClass = "h-64" }) {
   if (!data?.length) return null;
   // Two endpoints share this chart with different shapes: market history uses
   // timestamp/close, portfolio performance uses date/value. Normalize once here.
