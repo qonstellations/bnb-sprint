@@ -1,856 +1,672 @@
-# PLAN.md — StockPulse Frontend: News, Sentiment & Alerts
+# StockPulse — Final Frontend PLAN.md
 
-## Role
+## 1. Purpose
 
-You are **Frontend Developer 2** on the StockPulse hackathon team.
+Build the StockPulse frontend as a polished hackathon MVP that demonstrates one complete, convincing user journey:
 
-Your ownership is the **market insight and decision-support experience**: stock price visualization, financial news, simple Bullish/Neutral/Bearish sentiment, and configurable price alerts.
+> **Sign in → Search a stock → View price + sentiment + news → Place a paper trade → Track the position and P&L → Set a target/stop-loss alert**
 
-This is a hackathon MVP. The goal is to make StockPulse feel differentiated from a basic paper-trading simulator without building an overly complex analytics platform.
+The frontend should prioritize a small number of polished flows over feature breadth.
 
-Developer 1 owns the trading engine UI, portfolio dashboard, holdings, orders, and core watchlist. Your work should integrate cleanly with those areas.
+StockPulse is a paper-trading and market-insights application. All trading is simulated using virtual money. The frontend must present market information clearly without making investment recommendations.
 
 ---
 
-## Product Context
+# 2. Backend API Contract
 
-StockPulse is a paper-trading application intended to help users understand stock-market behavior by combining simulated trading with market informatio simplified MVP should support:
+Base API:
 
+```text
+/api/v1
+```
+
+## Authentication
+
+```text
+POST /auth/register
+POST /auth/login
+GET  /auth/me
+```
+
+## Instruments
+
+```text
+GET /instruments/search
+GET /instruments/:symbol
+```
+
+## Market Data
+
+```text
+GET /market/quote/:symbol
+GET /market/history/:symbol
+GET /market/quotes
+```
+
+## Orders
+
+```text
+POST /orders
+GET  /orders
+GET  /orders/:id
+POST /orders/:id/cancel
+```
+
+## Portfolio
+
+```text
+GET /portfolio/summary
+GET /portfolio/positions
+GET /portfolio/performance
+GET /portfolio/allocation
+GET /portfolio/risk
+GET /portfolio/snapshots
+```
+
+## News
+
+```text
+GET /news
+GET /news/:symbol
+```
+
+## Sentiment
+
+```text
+GET /sentiment/:symbol
+GET /sentiment/:symbol/history
+```
+
+## Watchlist
+
+```text
+GET    /watchlist
+POST   /watchlist
+DELETE /watchlist/:symbol
+```
+
+## Alerts
+
+```text
+GET    /alerts
+POST   /alerts/rules
+GET    /alerts/rules
+PATCH  /alerts/rules/:id
+DELETE /alerts/rules/:id
+```
+
+---
+
+# 3. Frontend Technical Direction
+
+Before implementation, inspect the existing repository and preserve its established conventions.
+
+Determine:
+
+- Frontend framework and version.
+- Routing system.
+- Styling solution.
+- Component library, if present.
+- State-management solution.
+- Data-fetching/query library.
+- Charting library.
+- Authentication/token handling.
+- Existing API client.
+- Existing reusable UI components.
+- Existing TypeScript models/types.
+- Existing error/toast/loading patterns.
+
+## API Layer
+
+Mirror the backend resource boundaries in the frontend.
+
+Recommended structure:
+
+```text
+src/
+├── api/
+│   ├── auth.ts
+│   ├── instruments.ts
+│   ├── market.ts
+│   ├── orders.ts
+│   ├── portfolio.ts
+│   ├── news.ts
+│   ├── sentiment.ts
+│   ├── watchlist.ts
+│   └── alerts.ts
+│
+├── components/
+├── pages/
+├── hooks/
+├── types/
+├── lib/
+└── utils/
+```
+
+Use the actual repository structure when one already exists.
+
+Do not create speculative frontend endpoints that are not backed by the backend API.
+
+---
+
+# 4. Developer Ownership
+
+## Developer 1 — Core Trading & Portfolio
+
+Own:
+
+- Authentication
+- Application shell/navigation
+- Dashboard
 - Stock search
-- Stock detail view
-- Current stock price
-- Basic historical price chart
-- Financial news
-- Bullish / Neutral / Bearish sentiment
-- Sentiment displayed alongside stock-price movement
-- Simple target-price alerts
-- Simple stop-loss alerts
+- Instrument data
+- Market quotes/history
+- Order placement
+- Order history
+- Positions
+- Portfolio summary
+- Portfolio performance
+- Allocation
+- Watchlist
+- Core stock-detail layout
+
+Backend ownership:
+
+```text
+/auth
+/instruments
+/market
+/orders
+/portfolio
+/watchlist
+```
+
+## Developer 2 — News, Sentiment & Alerts
+
+Own:
+
+- News feed
+- Stock-specific news
+- Current sentiment
+- Sentiment history
+- Price + sentiment visualization
+- Alert creation/editing/deletion
+- Alert status
 - In-app alert notifications
-- Responsive fintech-style UI
+- Insight-side sections of the stock-detail page
 
-Do not build advanced social-media analytics, technical indicators, portfolio risk mathematics, or a complex recommendation engine.
+Backend ownership:
 
----
+```text
+/news
+/sentiment
+/alerts
+```
 
-## Primary Goal
+## Shared Ownership
 
-Build and plan the frontend workflow:
+Both developers collaborate on:
 
-> **Search Stock → Inspect Price → Read News/Sentiment → Observe Sentiment vs Price → Set Alert → Receive Triggered Alert**
+- Design system
+- Shared layout/components
+- API client conventions
+- Authentication state
+- Shared types
+- Stock detail route
+- Toast/notification system
+- Final responsive polish
+- Integration testing
 
-The resulting plan must be detailed enough for implementation without another architecture discussion.
-
----
-
-## First Step: Inspect the Existing Repository
-
-Before deciding on implementation details, inspect and document:
-
-1. Frontend framework and version.
-2. Build tool.
-3. Routing.
-4. Folder structure.
-5. Existing design system/components.
-6. Styling approach.
-7. State-management solution.
-8. Data-fetching/API utilities.
-9. Existing authentication handling.
-10. Existing chart library.
-11. Existing notification/toast implementation.
-12. Existing stock/ticker models.
-13. Existing alert/news/sentiment API support.
-14. Existing shared components created by Developer 1, if already present.
-
-Reuse the repository's existing patterns wherever possible.
+Avoid two implementations of the same reusable component.
 
 ---
 
-## Scope of Ownership
+# 5. MVP Routes / Pages
 
-### A. Stock Search Integration
+Keep the application to a small set of meaningful screens.
 
-Provide the stock-search experience needed to reach a stock's insight page.
+```text
+/login
+/register
+/dashboard
+/stocks/:symbol
+/portfolio
+/orders
+/alerts
+```
+
+The watchlist does not require a separate page for MVP. It can live on the dashboard and stock pages.
+
+---
+
+# 6. Global Application Shell
+
+## Requirements
+
+Create a protected application layout containing:
+
+- App logo/name: StockPulse
+- Main navigation
+- User/account area
+- Logout action
+- Responsive mobile navigation
+- Global toast/notification area
+
+Suggested navigation:
+
+```text
+Dashboard
+Portfolio
+Trade
+Orders
+Alerts
+```
+
+`Trade` should lead to stock search / stock detail rather than a standalone trading screen with no selected stock.
+
+---
+
+# 7. Authentication
+
+## Developer 1
+
+Implement:
+
+### Register
+
+```text
+POST /api/v1/auth/register
+```
+
+### Login
+
+```text
+POST /api/v1/auth/login
+```
+
+### Current User
+
+```text
+GET /api/v1/auth/me
+```
 
 Requirements:
 
-- Search ticker/company name.
-- Show ticker + company name.
+- Form validation.
+- Loading state.
+- Backend error handling.
+- Authenticated route protection.
+- Persist auth according to the backend's chosen mechanism.
+- Redirect authenticated users to `/dashboard`.
+- Redirect unauthenticated users to `/login`.
+- Logout should clear client auth state.
+
+Do not invent a token-storage strategy before inspecting the backend authentication contract.
+
+---
+
+# 8. Dashboard
+
+## Developer 1
+
+The dashboard is the user's primary landing page.
+
+Display:
+
+### Summary cards
+
+- Total portfolio value
+- Available cash
+- Total P&L / return
+- Number of positions
+
+Use:
+
+```text
+GET /portfolio/summary
+```
+
+### Holdings preview
+
+Use:
+
+```text
+GET /portfolio/positions
+```
+
+Show:
+
+- Symbol
+- Current price
+- Quantity
+- Current value
+- P&L
+- P&L %
+
+### Performance chart
+
+Use:
+
+```text
+GET /portfolio/performance
+```
+
+Display a simple historical portfolio-value chart.
+
+Avoid advanced indicators.
+
+### Allocation chart
+
+Use:
+
+```text
+GET /portfolio/allocation
+```
+
+Display a simple donut/pie chart.
+
+### Watchlist preview
+
+Use:
+
+```text
+GET /watchlist
+GET /market/quotes
+```
+
+Show:
+
+- Symbol
+- Company
+- Current price
+- Daily change
+
+### Optional risk card
+
+`GET /portfolio/risk` may be used for a single compact metric if the response is already demo-friendly.
+
+Do not create a separate risk-analysis page.
+
+---
+
+# 9. Stock Search
+
+## Developer 1
+
+Use:
+
+```text
+GET /instruments/search
+```
+
+Requirements:
+
+- Search by ticker/company name.
+- Debounce requests where appropriate.
+- Display symbol + company name.
 - Loading state.
 - Empty state.
 - Error state.
-- Selecting a stock opens the stock detail page.
-- Reuse Developer 1's search component or shared service rather than creating two competing implementations.
-
-The stock-detail route should accept a symbol in a predictable format.
-
-Example:
+- Selecting a result navigates to:
 
 ```text
-/stocks/AAPL
+/stocks/:symbol
 ```
 
-Adapt this to the project's existing routing convention.
-
----
-
-### B. Stock Header / Quote Visualization
-
-On the stock detail page, present a compact overview:
-
-- Company name
-- Symbol
-- Current price
-- Daily price change
-- Daily percentage change
-- Last-updated indicator, if supported
-- Basic historical price chart
-
-Chart requirements:
-
-- Clear line/area chart.
-- Useful time ranges where data supports them.
-- Hover/tap tooltip.
-- Price axis.
-- Time axis.
-- Responsive resizing.
-- Loading/empty/error state.
-
-Do not build:
-
-- RSI
-- MACD
-- Bollinger Bands
-- Candlestick pattern analysis
-- Complex technical-analysis tooling
-
-The chart is primarily for understanding price movement relative to sentiment.
-
----
-
-### C. Financial News Feed
-
-Build a compact, useful financial-news section.
-
-Each news item should display:
-
-- Headline
-- Source
-- Publication time/date
-- Related ticker, where available
-- Sentiment label
-- Link/open action if the backend provides an article URL
+Create one reusable search component and use it throughout the application.
 
 Suggested component:
 
 ```text
-NewsCard
-```
-
-or
-
-```text
-NewsList
-```
-
-Handle:
-
-- Loading
-- No news
-- API error
-- Long headlines
-- Missing source/time
-- Duplicate/very similar items if the backend returns them
-
-Do not implement a full news-reader page unless the repository already supports it.
-
----
-
-### D. Sentiment Scorecard
-
-The MVP sentiment model has exactly three user-facing categories:
-
-- Bullish
-- Neutral
-- Bearish
-
-Create a simple visual scorecard.
-
-Possible presentation:
-
-```text
-Bullish    62%
-Neutral    23%
-Bearish    15%
-```
-
-or a simpler dominant-sentiment card such as:
-
-```text
-Overall Sentiment
-BULLISH
-+62 sentiment score
-```
-
-Use the actual backend representation if available.
-
-The UI must distinguish:
-
-- Individual article sentiment
-- Overall/current stock sentiment
-
-Do not imply a trading recommendation.
-
-The frontend should present sentiment as market information, not as “buy/sell” advice.
-
----
-
-### E. Sentiment + Price Correlation
-
-This is one of the main visual differentiators of StockPulse.
-
-Create a compact timeline/visualization that allows users to compare:
-
-- Stock price movement
-- News/sentiment events
-
-Possible implementation:
-
-- Price chart as the base layer
-- Sentiment event markers along the timeline
-- Bullish / Neutral / Bearish badges on event markers
-- Hover interaction showing headline + sentiment
-- Or two synchronized horizontal sections if chart-library overlays are difficult
-
-The simplest implementation that communicates the relationship clearly is preferred.
-
-Requirements:
-
-- Same time window for price and news events where possible.
-- Avoid misleading precision.
-- Missing sentiment data should not break the chart.
-- Show an explanatory empty state when correlation data is insufficient.
-
-Do not claim causation. The UI should only show that price movement and sentiment events occurred around the same period.
-
----
-
-### F. Alerts
-
-Users should be able to create simple price alerts.
-
-Supported alert types:
-
-1. Target price
-2. Stop-loss price
-
-Inputs:
-
-- Stock
-- Alert type
-- Trigger price
-
-Optional:
-
-- Quantity/position context, if backend already requires it
-
-Validation:
-
-- Trigger price must be valid.
-- Trigger price should be appropriate for the current market price depending on the alert direction, if this rule is enforced by the backend.
-- Clear invalid-input message.
-- Avoid silently creating duplicate alerts unless the backend explicitly permits it.
-
----
-
-### G. Alert List
-
-Create a simple alerts section/page.
-
-Each alert should show:
-
-- Symbol
-- Current price
-- Alert type
-- Trigger price
-- Status
-- Created time/date
-- Delete/disable action
-
-Suggested statuses:
-
-- Active
-- Triggered
-- Disabled
-
-Keep the interface simple enough for a demo.
-
----
-
-### H. Triggered Alert Notification
-
-When an alert is triggered:
-
-- Show an in-app toast/banner.
-- Make the triggered status visible in the alert list.
-- Avoid showing repeated notifications for the same alert.
-- Refresh alert state after trigger handling.
-
-Use existing polling/event infrastructure if available.
-
-Do not build browser push notifications unless they already exist.
-
----
-
-## Data & API Planning
-
-Inspect the actual API layer.
-
-Conceptually, the frontend may need:
-
-```text
-GET    /stocks/search
-GET    /stocks/:symbol
-GET    /stocks/:symbol/history
-
-GET    /stocks/:symbol/news
-GET    /stocks/:symbol/sentiment
-GET    /stocks/:symbol/market-insights
-
-GET    /alerts
-POST   /alerts
-PATCH  /alerts/:id
-DELETE /alerts/:id
-```
-
-These are illustrative, not requirements for exact route names.
-
-For each real endpoint, document:
-
-- HTTP method
-- Request parameters/body
-- Response format
-- Auth requirements
-- Error shape
-- Loading state
-- Refresh/invalidation behavior
-
-If the backend does not yet provide news or sentiment APIs, define a small frontend adapter interface so mock data can be swapped for the real API later.
-
-Example:
-
-```ts
-type NewsItem = {
-  id: string;
-  symbol: string;
-  headline: string;
-  source?: string;
-  publishedAt: string;
-  sentiment: "BULLISH" | "NEUTRAL" | "BEARISH";
-  url?: string;
-};
-```
-
-Adapt types to the backend rather than forcing this exact shape.
-
----
-
-## State Management
-
-Separate server state from UI state.
-
-### Server state
-
-Likely entities:
-
-- Selected stock quote
-- Historical prices
-- News
-- Sentiment
-- Price/sentiment events
-- Alerts
-
-### UI state
-
-Likely state:
-
-- Search text
-- Selected chart range
-- Selected news filter
-- Alert modal open/closed
-- Alert type
-- Alert price
-- Notification visibility
-
-Avoid storing fetched news/quotes globally unless the repository already uses a clear global-cache strategy.
-
----
-
-## Refresh Strategy
-
-The application should feel current without overengineering.
-
-Plan:
-
-- Poll or refetch quote data at a reasonable interval if required.
-- Refresh news/sentiment less frequently.
-- Refresh alerts when the page becomes active.
-- Immediately invalidate/refetch relevant alert data after create/delete/update.
-- Avoid several independent timers for the same resource.
-
-If no real-time backend exists, make the UI architecture compatible with periodic refresh.
-
----
-
-## Shared Components
-
-Coordinate with Developer 1 so that common components are not duplicated.
-
-Potential reusable components:
-
-```text
 StockSearch
-StockHeader
-PriceChange
-PriceChart
-NewsCard
-NewsList
-SentimentBadge
-SentimentScorecard
-SentimentTimeline
-AlertModal
-AlertForm
-AlertList
-AlertStatusBadge
-Toast
-LoadingSkeleton
-EmptyState
-ErrorState
 ```
 
-Developer 1 may already create:
+---
+
+# 10. Stock Detail Page
+
+This is the main collaborative page.
+
+Structure:
 
 ```text
-AppLayout
-MetricCard
-Modal
-StatusBadge
-StockSearch
-StockHeader
-PriceChart
-Toast
+┌───────────────────────────────────────────────────┐
+│ Stock Header                         [Watchlist ★]│
+├───────────────────────────────────────────────────┤
+│ Current Price / Daily Change                      │
+│                                                   │
+│                 PRICE CHART                       │
+├───────────────────────────┬───────────────────────┤
+│                           │ Sentiment             │
+│ Trading Panel             │ Scorecard             │
+│ Buy / Sell                │                       │
+│ Market / Limit            │                       │
+│                           │                       │
+├───────────────────────────┴───────────────────────┤
+│ Price + Sentiment Timeline                        │
+├───────────────────────────────────────────────────┤
+│ Related Financial News                            │
+├───────────────────────────────────────────────────┤
+│ Price Alert / Stop-Loss                           │
+└───────────────────────────────────────────────────┘
 ```
 
-Use those shared components instead of rebuilding equivalents.
+Developer 1 owns:
 
----
-
-## UX Requirements
-
-### Stock Insight Page
-
-Organize information in a clear hierarchy:
-
-```text
-Stock Header
-   ↓
-Price + Chart
-   ↓
-Sentiment Scorecard
-   ↓
-Price/Sentiment Timeline
-   ↓
-Relevant News
-   ↓
-Set Price Alert
-```
-
-On desktop, news and sentiment can be presented alongside the chart where space permits.
-
-On mobile, stack the sections vertically.
-
----
-
-### Sentiment Language
-
-Keep copy factual.
-
-Good:
-
-> “Current news sentiment: Bullish”
-
-Good:
-
-> “12 recent articles: 7 Bullish, 3 Neutral, 2 Bearish”
-
-Avoid:
-
-> “You should buy this stock.”
-
-Avoid:
-
-> “This stock will rise.”
-
-The frontend presents information; it does not make investment recommendations.
-
----
-
-## Error / Loading / Empty States
-
-Define states for:
-
-- Stock quote unavailable
-- Chart data unavailable
-- News feed empty
-- News API failure
-- Sentiment unavailable
-- Insufficient data for sentiment timeline
-- Alerts empty
-- Alert creation failure
-- Alert deletion failure
-- Alert successfully created
-- Alert successfully triggered
-
-Error states should give users an understandable message and retry path.
-
----
-
-## Performance Considerations
-
-For a hackathon MVP:
-
-- Lazy-load large/secondary pages where practical.
-- Do not render dozens of expensive chart instances simultaneously.
-- Avoid unnecessary re-renders from polling.
-- Memoize expensive transformed chart data if needed.
-- Limit the number of news articles initially rendered.
-- Keep the stock-detail page responsive during data fetching.
-
-Do not prematurely optimize.
-
----
-
-## Definition of Done
-
-Your implementation plan should cover a clear completion checklist:
-
-- Stock search works.
-- Stock detail route works.
-- Current quote is displayed.
-- Historical price chart renders.
-- News feed renders.
-- Each article can display a sentiment badge.
-- Overall sentiment scorecard renders.
-- Price/sentiment relationship is visualized.
-- User can create a target-price alert.
-- User can create a stop-loss alert.
-- User can view active/triggered alerts.
-- User can delete/disable an alert.
-- Triggered alerts produce an in-app notification.
-- Loading/empty/error states exist.
-- UI is responsive.
-- No unsupported claims or trading recommendations are presented.
-
----
-
-## Deliverable: The Plan
-
-Produce a detailed execution plan in `PLAN.md`.
-
-Structure it as:
-
-### 1. Repository Findings
-Identify existing technologies, components, routes, services, and APIs to reuse.
-
-### 2. Architecture
-Define routes, component boundaries, data flow, and state management.
-
-### 3. API Contracts
-Document actual available APIs. Where unavailable, define minimal adapter/mock interfaces.
-
-### 4. Screen-by-Screen Implementation Plan
-Cover:
-
-- Stock search
-- Stock detail
+- Header
+- Quote
 - Price chart
+- Watchlist action
+- Trading panel
+
+Developer 2 owns:
+
+- Sentiment scorecard
+- Sentiment history/timeline
 - News
-- Sentiment
-- Price/sentiment visualization
-- Alerts
-- Notification behavior
+- Alert controls
 
-For every task include:
-
-- What to build
-- Components/files involved
-- Dependencies
-- Acceptance criteria
-
-### 5. UI / UX Specification
-Describe layout, interactions, responsive behavior, and important states.
-
-### 6. Data Refresh Strategy
-Explain polling/refetch behavior and mutation invalidation.
-
-### 7. Testing Checklist
-Include critical manual and automated test cases.
-
-### 8. Developer Handoff Notes
-Explicitly document integration points for Developer 1:
-
-- Stock-detail route
-- Stock search
-- Shared types
-- Shared chart components
-- Shared notifications
-- Watchlist integration
-- Any API assumptions
-
-### 9. Hackathon Priorities
-Clearly separate:
-
-- Must-have
-- Nice-to-have
-- Out of scope
-
-The final plan should be concrete, incremental, and implementation-ready. Favor a small number of polished flows over feature creep.
-
-
-
-
-
-# PLAN.md — StockPulse Frontend: Trading & Portfolio
-
-## Role
-
-You are **Frontend Developer 1** on the StockPulse hackathon team.
-
-Your ownership is the **core trading and portfolio experience**. Your work should make it possible for a user to enter the app, find a stock, place a simulated trade with virtual cash, see the resulting holding, and understand their portfolio value and P&L.
-
-This is a hackathon MVP. Favor a clean, convincing, reliable implementation over unnecessary abstraction or advanced financial features.
+Both developers must agree on the shared stock symbol/route/type contract.
 
 ---
 
-## Product Context
+# 11. Stock Header and Quote
 
-StockPulse is a paper-trading web application that lets users practice stock trading without risking real money.
+## Developer 1
 
-The MVP should support:
+Instrument:
 
-- Virtual cash
-- Market and limit buy/sell orders
-- Order confirmation
-- Order history
-- Current holdings / positions
-- Portfolio value
-- Cash balance
-- P&L / returns
-- Basic portfolio performance chart
-- Basic asset allocation chart
-- Simple watchlist
-- Stock search
-- Responsive fintech-style UI
-
-The second frontend developer owns news, sentiment, stock insight visualizations, and price alerts. Build your areas so they can be integrated without duplicating responsibility.
-
----
-
-## Your Primary Goal
-
-Design and plan the frontend implementation for:
-
-> **Search Stock → View Stock → Place Paper Trade → See Order/Position → Track Portfolio & P&L**
-
-Your plan should be implementation-ready for another developer. Do not produce vague statements such as “build the dashboard.” Break work down into concrete pages, components, states, data requirements, and integration points.
-
----
-
-## First Step: Inspect the Existing Repository
-
-Before proposing implementation details, inspect the repository and identify:
-
-1. Frontend framework and version.
-2. Build tool.
-3. Existing routing solution.
-4. Current folder structure.
-5. Existing component/design system.
-6. Styling approach.
-7. State-management solution, if any.
-8. Data-fetching/API utilities, if any.
-9. Existing authentication implementation.
-10. Existing charting library, if any.
-11. Existing environment-variable conventions.
-12. Existing API/service layer and available endpoints.
-13. Existing reusable table, modal, form, toast, and card components.
-14. Existing TypeScript types/interfaces for users, stocks, orders, positions, or portfolios.
-
-Do not assume a technology that the repository already has not adopted. Reuse existing patterns where practical.
-
----
-
-## Scope of Ownership
-
-### A. Application Shell
-
-Plan the frontend structure for:
-
-- Protected application layout
-- Sidebar/top navigation
-- Dashboard route
-- Trade/stock-detail route
-- Portfolio route
-- Orders/history route if separated
-- Watchlist section
-- Shared account/cash summary
-
-Navigation should clearly expose:
-
-- Dashboard
-- Trade
-- Portfolio
-- Orders
-- Watchlist
-
-Do not create unnecessary pages.
-
----
-
-### B. Stock Search
-
-Implement a simple, fast stock search experience.
-
-Requirements:
-
-- Search by ticker or company name.
-- Show ticker + company name in results.
-- Handle loading state.
-- Handle no-results state.
-- Handle API error state.
-- Clicking a result opens the stock detail/trading view.
-- Debounce server-side search if the existing API benefits from it.
-- Keep the interaction simple enough for a demo.
-
-Potential reusable component:
-
-`StockSearch`
-
-Possible data shape:
-
-```ts
-type StockSearchResult = {
-  symbol: string;
-  name: string;
-};
+```text
+GET /instruments/:symbol
 ```
 
-Adapt this to the repository's actual API types.
+Quote:
 
----
-
-### C. Stock Detail + Trading Page
-
-Create the main page where the user can inspect a stock and trade it.
+```text
+GET /market/quote/:symbol
+```
 
 Display:
 
 - Company name
-- Ticker
+- Symbol
 - Current price
-- Daily price change
+- Daily change
 - Daily percentage change
-- Basic price chart
-- User's current position in that stock, when applicable
-- Available virtual cash
-- Order form
+- Optional exchange/sector/logo only if API provides it
+- Watchlist button
 
-Order form requirements:
+Do not fabricate missing metadata.
 
-- Buy/Sell toggle
-- Market/Limit toggle
-- Quantity input
-- Limit-price input only for limit orders
-- Estimated order value
-- Estimated remaining cash for buy orders
-- Estimated position impact
-- Validation messages
-- Submit button
-- Confirmation state/modal
-
-Rules for the frontend:
-
-- Disable limit-price input for market orders.
-- Require quantity > 0.
-- Require limit price for limit orders.
-- Prevent obviously invalid client-side submissions.
-- Do not rely only on client-side validation; display backend validation errors too.
-- Format currency and quantities consistently.
-
-Keep the order experience visually clear and compact.
+Use consistent price/currency formatting.
 
 ---
 
-### D. Order Confirmation
+# 12. Price History Chart
 
-Plan a lightweight confirmation step before submitting an order.
+## Developer 1
 
-For example:
+Use:
 
 ```text
-Buy
-AAPL
-10 shares
-Market Order
-Estimated Value: $2,100
+GET /market/history/:symbol
 ```
 
-Then:
+Create a simple interactive line/area chart.
 
-- Confirm
-- Cancel
+Requirements:
 
-After success:
+- Time range controls only if the API supports them.
+- Tooltip.
+- Price axis.
+- Time axis.
+- Responsive resizing.
+- Loading state.
+- Empty state.
+- Error state.
 
-- Show success toast/banner.
-- Refresh relevant order/position/portfolio data.
-- Keep the user on the current workflow unless the UX clearly benefits from navigation.
+Do not add:
+
+- RSI
+- MACD
+- Bollinger Bands
+- Candlestick-analysis tools
+- Buy/sell prediction overlays
+
+The chart exists primarily to explain price movement.
 
 ---
 
-### E. Orders / Order History
+# 13. Trading Panel
 
-Provide a simple order-history interface.
+## Developer 1
 
-Each row should include, where supported by the backend:
+Use:
+
+```text
+POST /orders
+```
+
+The backend is authoritative for balance, execution, position, and final P&L.
+
+The order form supports:
+
+```text
+BUY / SELL
+MARKET / LIMIT
+Quantity
+Limit price (only for LIMIT)
+```
+
+Display:
+
+- Current price
+- Available virtual cash
+- Current holding, when applicable
+- Estimated order value
+- Remaining cash estimate for buys
+
+## Validation
+
+- Quantity must be positive.
+- Limit price is required for limit orders.
+- Limit price must be valid numeric input.
+- Prevent obviously malformed input.
+- Show server-side validation errors.
+
+Do not allow limit-price input when `MARKET` is selected.
+
+---
+
+# 14. Order Confirmation
+
+Before submission, show a confirmation dialog containing:
+
+- Buy/Sell
+- Symbol
+- Order type
+- Quantity
+- Limit price if applicable
+- Estimated order value
+
+Actions:
+
+```text
+Confirm
+Cancel
+```
+
+After successful submission:
+
+1. Show success feedback.
+2. Refresh/invalidate orders.
+3. Refresh/invalidate positions.
+4. Refresh/invalidate portfolio summary.
+5. Refresh relevant quote if required.
+6. Keep the user in the trading workflow.
+
+---
+
+# 15. Orders Page
+
+## Developer 1
+
+Use:
+
+```text
+GET /orders
+```
+
+Display:
 
 - Date/time
 - Symbol
-- Buy/Sell
-- Market/Limit
+- Side
+- Order type
 - Quantity
-- Price or limit price
+- Price / limit price
 - Status
-- Total value
+- Total value when available
 
-Minimum statuses:
+Possible statuses:
 
-- Pending
-- Filled
-- Cancelled
-- Rejected
+```text
+PENDING
+FILLED
+CANCELLED
+REJECTED
+```
 
-Include:
+Adapt to actual backend enum values.
 
-- Loading state
-- Empty state
-- Error state
+For cancellable orders, use:
 
-Avoid building advanced filtering unless it is already inexpensive to support.
+```text
+POST /orders/:id/cancel
+```
+
+Provide clear confirmation before cancellation.
+
+Handle:
+
+- Loading
+- Empty
+- Error
+- Pagination if already supported by backend
+
+Do not build complex order filters unless they are already easy to support.
 
 ---
 
-### F. Current Holdings / Positions
+# 16. Positions / Holdings
 
-Create a reusable holdings table.
+## Developer 1
+
+Use:
+
+```text
+GET /portfolio/positions
+```
 
 Display:
 
@@ -863,215 +679,400 @@ Display:
 - P&L
 - P&L %
 
-Use clear positive/negative visual treatment.
+Use reusable table/card layouts.
 
-For zero-position cases, provide an informative empty state rather than an empty table.
-
----
-
-### G. Portfolio Dashboard
-
-The dashboard is the first screen after login.
-
-Required metrics:
-
-1. Total portfolio value
-2. Available cash
-3. Total return / P&L
-4. Number of active positions
-
-Use compact metric cards.
-
-Also include:
-
-- Holdings preview
-- Basic asset allocation chart
-- Basic portfolio performance chart
-- Watchlist preview
-
-A user should understand their current financial state within a few seconds.
+On mobile, convert the wide table into stacked holding cards if necessary.
 
 ---
 
-### H. Performance Chart
+# 17. Portfolio Page
 
-Plan one simple portfolio history chart.
+## Developer 1
 
-Requirements:
-
-- Time range options if historical data exists (for example 1D / 1W / 1M / 3M).
-- Tooltip with date and portfolio value.
-- Clear empty state if insufficient history exists.
-- Responsive sizing.
-
-Do not build advanced technical-analysis indicators.
-
----
-
-### I. Asset Allocation Chart
-
-Create a basic allocation visualization.
-
-For example:
-
-- Donut chart or pie chart.
-- Each holding represented by percentage of invested/current portfolio value.
-- Legend showing ticker and percentage.
-- Handle a portfolio with cash but no positions.
-- Provide a sensible empty state.
-
-The exact chart style should follow the repository's existing visualization library.
-
----
-
-### J. Watchlist
-
-Keep the watchlist intentionally simple.
-
-Requirements:
-
-- Add stock.
-- Remove stock.
-- Show ticker, name, current price, and daily change if available.
-- Clicking a stock opens its trading/detail view.
-- Loading/error/empty states.
-
-The second developer may consume or reference watchlist data for stock insights. Keep the underlying type/API interface reusable.
-
----
-
-## Data & API Planning
-
-Inspect the actual API layer before writing the implementation plan.
-
-At minimum, determine whether the frontend can access concepts equivalent to:
+Use:
 
 ```text
-GET    /stocks/search
-GET    /stocks/:symbol
-GET    /stocks/:symbol/history
+GET /portfolio/summary
+GET /portfolio/positions
+GET /portfolio/performance
+GET /portfolio/allocation
+```
 
-GET    /portfolio
-GET    /portfolio/performance
-GET    /positions
-GET    /orders
-POST   /orders
+The page contains:
 
+```text
+Summary
+↓
+Performance
+↓
+Allocation
+↓
+Holdings
+```
+
+Keep it simple.
+
+Do not turn `/portfolio/risk` or `/portfolio/snapshots` into separate features.
+
+Only use `/portfolio/snapshots` if the response is necessary to support the performance visualization and `/performance` does not already provide the required data.
+
+---
+
+# 18. Watchlist
+
+## Developer 1
+
+Use:
+
+```text
 GET    /watchlist
 POST   /watchlist
 DELETE /watchlist/:symbol
 ```
 
-These are illustrative only. Use the real repository endpoints when available.
+Requirements:
 
-For every endpoint you plan to use, document:
+- Add a stock.
+- Remove a stock.
+- View watchlist.
+- Display current quote.
+- Clicking a stock opens `/stocks/:symbol`.
 
-- Request shape
-- Response shape
-- Authentication requirements
-- Loading behavior
-- Error behavior
-- Refresh/invalidation strategy
+Use `/market/quotes` to efficiently populate multiple watchlist prices where the API supports it.
 
-If the backend is incomplete, explicitly identify the missing contract and propose a frontend mock/service interface that can be replaced later without rewriting UI components.
-
----
-
-## State Management
-
-Define clearly:
-
-### Server state
-Use the repository's existing data-fetching solution where available.
-
-Likely server-state entities:
-
-- Current user
-- Virtual cash
-- Stock quote
-- Stock history
-- Positions
-- Orders
-- Portfolio summary
-- Portfolio history
-- Watchlist
-
-### UI state
-
-Examples:
-
-- Selected symbol
-- Buy/Sell selection
-- Market/Limit selection
-- Quantity
-- Limit price
-- Confirmation modal open/closed
-- Search query
-- Selected performance range
-
-Do not place server data into global client state unnecessarily.
+Avoid individual quote requests for every watchlist item when the bulk endpoint can handle them.
 
 ---
 
-## Refresh / "Real-Time" Behavior
+# 19. News Feed
 
-This is a paper-trading app, so the frontend needs to feel responsive without overengineering.
+## Developer 2
 
-Plan a simple strategy such as:
-
-- Refresh quotes periodically.
-- Refresh portfolio/position/order data after a successful trade.
-- Invalidate related queries after mutations.
-- Avoid aggressive polling for every screen.
-- Clearly show the last updated time if useful.
-
-Do not implement WebSockets unless they already exist or are trivial to use.
-
----
-
-## UX Requirements
-
-Define specific states for every important interaction:
-
-### Loading
-Use skeletons/spinners without causing large layout jumps.
-
-### Empty
-Examples:
-
-- No positions
-- No orders
-- Empty watchlist
-- No historical portfolio data
-
-### Error
-Show a human-readable error and a retry path.
-
-### Success
-Use a toast/banner after successful:
-
-- Order placement
-- Watchlist add/remove
-
-### Validation
-Show inline validation near fields.
-
-### Mobile
-Trading form, holdings tables, and dashboard cards must remain usable on smaller screens.
-
----
-
-## Shared Component Strategy
-
-Identify reusable components rather than duplicating markup.
-
-Likely shared components:
+Global news:
 
 ```text
-AppLayout
-TopBar
-Sidebar
-MetricCard
+GET /news
+```
+
+Stock-specific news:
+
+```text
+GET /news/:symbol
+```
+
+For the stock page, prefer the stock-specific endpoint.
+
+Each article should display:
+
+- Headline
+- Source
+- Published time/date
+- Related symbol if available
+- Sentiment
+- Article link if provided
+
+Suggested components:
+
+```text
+NewsList
+NewsCard
+```
+
+Handle:
+
+- Loading
+- No news
+- Error
+- Long headlines
+- Missing metadata
+
+Keep the list compact and readable.
+
+---
+
+# 20. Sentiment
+
+## Developer 2
+
+Current sentiment:
+
+```text
+GET /sentiment/:symbol
+```
+
+History:
+
+```text
+GET /sentiment/:symbol/history
+```
+
+User-facing categories:
+
+```text
+Bullish
+Neutral
+Bearish
+```
+
+Create:
+
+```text
+SentimentBadge
+SentimentScorecard
+```
+
+The scorecard can show either the backend's score or a distribution if provided.
+
+Example:
+
+```text
+Market Sentiment
+BULLISH
+
+7 Bullish
+3 Neutral
+2 Bearish
+```
+
+Do not convert sentiment into:
+
+- Buy recommendation
+- Sell recommendation
+- Price prediction
+- Guaranteed outcome
+
+Sentiment should be presented as market information.
+
+---
+
+# 21. Price + Sentiment Visualization
+
+## Developer 2
+
+Use:
+
+```text
+GET /market/history/:symbol
+GET /sentiment/:symbol/history
+```
+
+Create a lightweight visual correlation/timeline experience.
+
+Preferred implementation:
+
+- Price chart as the primary timeline.
+- Sentiment/news markers over or beneath it.
+- Marker color/label for Bullish, Neutral, Bearish.
+- Hover/tap reveals:
+  - Time
+  - Sentiment
+  - Optional headline
+
+Alternative:
+
+```text
+Price chart
+──────────────
+Sentiment timeline
+──────────────
+News events
+```
+
+Use whichever implementation is easiest with the existing charting library.
+
+Important:
+
+The visualization shows temporal association only. It must not imply that a news item caused a specific price movement.
+
+---
+
+# 22. Alerts
+
+## Developer 2
+
+Alert APIs:
+
+```text
+GET    /alerts
+POST   /alerts/rules
+GET    /alerts/rules
+PATCH  /alerts/rules/:id
+DELETE /alerts/rules/:id
+```
+
+MVP alert types:
+
+```text
+Target Price
+Stop Loss
+```
+
+## Create Alert
+
+Required fields:
+
+- Symbol
+- Alert type
+- Trigger price
+
+Optional fields only if backend requires them.
+
+Create:
+
+```text
+AlertForm
+AlertModal
+```
+
+Validation:
+
+- Valid symbol.
+- Valid positive trigger price.
+- Clear validation errors.
+- Server errors displayed.
+
+---
+
+# 23. Alert List
+
+## Developer 2
+
+Display:
+
+- Symbol
+- Current price if available
+- Alert type
+- Trigger price
+- Status
+- Created time
+- Edit
+- Delete / disable
+
+Use:
+
+```text
+GET /alerts
+```
+
+Determine whether it contains enough information about triggered alerts.
+
+Do not build a separate notification backend unless required.
+
+---
+
+# 24. Alert Trigger Notifications
+
+The backend routes do not specify a dedicated real-time notification stream.
+
+For the hackathon, use a simple refresh strategy.
+
+Preferred:
+
+```text
+Poll GET /alerts periodically
+```
+
+at a reasonable interval, or use an existing real-time mechanism if one already exists.
+
+When an alert transitions to a triggered state:
+
+- Show an in-app toast/banner.
+- Update the alert row.
+- Avoid repeatedly showing the same notification.
+
+A simple client-side mechanism can remember recently-notified alert IDs/status transitions during the current session.
+
+Do not implement browser push notifications for MVP.
+
+---
+
+# 25. API Query / Refresh Strategy
+
+Use a consistent server-state strategy.
+
+If the repository uses TanStack Query/React Query, follow it.
+
+### Example invalidation
+
+After successful order:
+
+```text
+orders
+positions
+portfolio-summary
+portfolio-performance
+portfolio-allocation
+```
+
+After watchlist mutation:
+
+```text
+watchlist
+market quotes
+```
+
+After alert mutation:
+
+```text
+alerts
+alert rules
+```
+
+After selecting a stock:
+
+```text
+instrument
+quote
+history
+news
+sentiment
+sentiment history
+```
+
+Avoid duplicate API calls when the same data can be shared/cached.
+
+---
+
+# 26. Real-Time Feel
+
+Do not overengineer real-time behavior.
+
+Use:
+
+- Quote polling only where needed.
+- Portfolio refresh after trade.
+- Alert polling if no socket/event mechanism exists.
+- Refetch when returning to an active screen.
+
+Avoid multiple independent timers for the same data.
+
+Show last-updated information when useful.
+
+---
+
+# 27. Shared Component System
+
+Build or reuse shared primitives:
+
+```text
+Button
+Input
+Select
+Modal
+Card
+Table
+Tabs
+Badge
+Toast
+Tooltip
+Skeleton
+EmptyState
+ErrorState
+```
+
+Product-specific components:
+
+```text
 StockSearch
 StockHeader
 PriceChange
@@ -1080,125 +1081,752 @@ OrderForm
 OrderConfirmationModal
 HoldingsTable
 OrdersTable
-AllocationChart
+PortfolioSummary
 PerformanceChart
+AllocationChart
 Watchlist
-StatusBadge
-EmptyState
-ErrorState
-LoadingSkeleton
-Toast
+NewsCard
+NewsList
+SentimentBadge
+SentimentScorecard
+SentimentTimeline
+AlertForm
+AlertList
+AlertStatusBadge
 ```
 
-Do not create components only to split trivial markup. Components should correspond to reusable UI or meaningful business behavior.
+Avoid duplicated versions of the same component.
 
 ---
 
-## Visual Direction
+# 28. UI Direction
 
-Aim for a modern trading/fintech product:
+Target a modern fintech/trading visual language.
 
-- Strong hierarchy
-- Dense but readable information
-- Clear positive/negative P&L
-- Consistent currency formatting
-- Consistent spacing
-- Compact cards and tables
-- Responsive charts
-- Minimal decorative UI
+Characteristics:
 
-Do not spend time on elaborate animation.
+- Clean dark or light professional UI depending on the existing project theme.
+- Strong information hierarchy.
+- Dense but readable data presentation.
+- Clear positive/negative P&L treatment.
+- Consistent financial formatting.
+- Minimal decorative animation.
+- Strong chart readability.
+- Responsive cards and tables.
 
----
-
-## Security / Reliability Considerations
-
-Frontend must not:
-
-- Treat virtual cash as authoritative.
-- Calculate a final execution result and assume it is valid.
-- Expose secrets.
-- Hard-code user-specific financial data.
-- Assume a successful HTTP request means the order is filled unless the API says so.
-
-The backend remains authoritative for balances, executions, positions, and P&L.
+Use the existing design system if available.
 
 ---
 
-## Definition of Done
+# 29. Responsive Requirements
 
-Your implementation plan must define a clear completion checklist covering:
+Desktop should be the primary hackathon presentation target, but the MVP must remain usable on mobile.
 
-- Authentication route protection works.
-- User can search for a stock.
-- User can open a stock detail page.
-- User can place a market order.
-- User can place a limit order.
-- User can buy and sell.
-- Order confirmation works.
-- Successful orders update UI state.
-- Order history is visible.
-- Current positions are visible.
-- P&L is visible.
-- Portfolio summary is visible.
-- Performance chart works.
-- Allocation chart works.
-- Watchlist works.
-- Loading/empty/error states exist.
-- Main UI is responsive.
+### Desktop
+
+Use:
+
+- Two-column layouts where useful.
+- Tables for orders/positions.
+- Chart + insight panels.
+
+### Mobile
+
+Stack:
+
+```text
+Stock Header
+Price
+Chart
+Trade Form
+Sentiment
+News
+Alert
+```
+
+Convert wide tables to horizontal scrolling or cards.
+
+Do not let critical action buttons become inaccessible.
 
 ---
 
-## Deliverable: The Plan
+# 30. Loading / Error / Empty States
 
-Produce a detailed execution plan in `PLAN.md`.
+Every major data-driven section needs explicit state handling.
 
-Structure it as:
+## Loading
 
-### 1. Repository Findings
-What already exists and what should be reused.
+Use skeletons or compact spinners.
 
-### 2. Architecture
-Routes, folders, component boundaries, data-flow, and state management.
+## Empty
 
-### 3. API Contracts
-Real endpoints and payloads, or explicitly proposed mock interfaces where the backend is missing.
+Examples:
 
-### 4. Implementation Tasks
-Break work into small ordered tasks. Every task should state:
+```text
+No positions yet.
+No orders yet.
+Your watchlist is empty.
+No news available.
+No sentiment data available.
+No alerts configured.
+```
 
-- What to build
-- Files/components likely affected
-- Dependencies
-- Acceptance criteria
+## Error
 
-### 5. UI / UX Details
-Describe each screen and important interaction.
+Display:
 
-### 6. Integration Strategy
-Explain how trading, portfolio, orders, and watchlist data stay synchronized.
+- Clear human-readable message.
+- Retry control where appropriate.
 
-### 7. Error / Loading / Empty States
-List the important states.
+## Success
 
-### 8. Testing Checklist
-Include critical manual and automated test cases.
+Use toast/banner for:
 
-### 9. Developer Handoff Notes
-Document anything Developer 2 needs to know, especially:
+- Order placed.
+- Order cancelled.
+- Watchlist added.
+- Watchlist removed.
+- Alert created.
+- Alert updated.
+- Alert deleted.
 
-- Shared types
+---
+
+# 31. Financial Formatting
+
+Create shared formatting utilities.
+
+Examples:
+
+```text
+formatCurrency()
+formatPercentage()
+formatQuantity()
+formatDateTime()
+formatPnl()
+```
+
+Requirements:
+
+- Consistent decimal precision.
+- Consistent positive/negative signs.
+- Consistent currency symbol based on backend/app configuration.
+- Avoid manually concatenating currency strings across components.
+
+P&L display should be unambiguous:
+
+```text
++$142.30
++4.82%
+
+-$53.10
+-2.11%
+```
+
+Adapt exact formatting to the product's chosen market/currency.
+
+---
+
+# 32. Error Handling
+
+Create a single API error-normalization pattern.
+
+The frontend should distinguish:
+
+```text
+Network error
+Authentication error
+Validation error
+Forbidden action
+Not found
+Server error
+```
+
+Map technical backend messages into readable UI copy where necessary.
+
+Do not expose stack traces or raw server internals.
+
+---
+
+# 33. Types / Shared Contracts
+
+Define shared TypeScript models based on the backend responses.
+
+Likely entities:
+
+```ts
+User
+Instrument
+Quote
+PriceHistoryPoint
+Order
+Position
+PortfolioSummary
+PortfolioPerformancePoint
+AllocationItem
+NewsItem
+Sentiment
+SentimentHistoryPoint
+WatchlistItem
+Alert
+AlertRule
+```
+
+Do not prematurely create dozens of domain types.
+
+Where the backend's exact response shape is uncertain, confirm the contract rather than relying on assumptions.
+
+---
+
+# 34. Backend Contract Items to Confirm Before Final UI Integration
+
+The frontend team should obtain exact JSON examples for:
+
+```text
+POST /auth/login
+POST /auth/register
+
+GET /instruments/search
+GET /instruments/:symbol
+
+GET /market/quote/:symbol
+GET /market/history/:symbol
+GET /market/quotes
+
+POST /orders
+GET /orders
+POST /orders/:id/cancel
+
+GET /portfolio/summary
+GET /portfolio/positions
+GET /portfolio/performance
+GET /portfolio/allocation
+GET /portfolio/risk
+GET /portfolio/snapshots
+
+GET /news
+GET /news/:symbol
+
+GET /sentiment/:symbol
+GET /sentiment/:symbol/history
+
+GET /watchlist
+POST /watchlist
+DELETE /watchlist/:symbol
+
+GET /alerts
+POST /alerts/rules
+GET /alerts/rules
+PATCH /alerts/rules/:id
+DELETE /alerts/rules/:id
+```
+
+Most important contract details:
+
+### Order request
+
+Confirm exact names/enums for:
+
+- Symbol
+- Side
+- Order type
+- Quantity
+- Limit price
+- Any additional fields
+
+### Order status
+
+Confirm exact enum values.
+
+### Sentiment
+
+Confirm:
+
+- Sentiment enum names.
+- Score range.
+- Historical data format.
+- Whether sentiment history references article IDs.
+
+### Alerts
+
+Confirm:
+
+- Alert type enum.
+- Rule status enum.
+- Whether `GET /alerts` returns triggered alerts.
+- How a rule transitions from active to triggered.
+- Whether current price is included.
+- Whether alert evaluation is server-side.
+
+### Authentication
+
+Confirm:
+
+- Token/session mechanism.
+- Required headers.
+- Refresh behavior if applicable.
+- Logout handling.
+
+---
+
+# 35. Work Breakdown — Developer 1
+
+## Phase 1 — Foundation
+
+- Inspect repository.
+- Confirm routing and auth mechanism.
+- Set up API service modules if missing.
+- Establish shared types.
+- Build app shell.
+- Implement auth pages/route protection.
+
+## Phase 2 — Search and Market
+
+- Build `StockSearch`.
+- Build stock detail route.
+- Integrate instrument API.
+- Integrate quote API.
+- Integrate price history.
+- Build `PriceChart`.
+
+## Phase 3 — Trading
+
+- Build Buy/Sell form.
+- Build Market/Limit selection.
+- Build validation.
+- Build confirmation modal.
+- Integrate `POST /orders`.
+- Refresh portfolio/order data after successful order.
+- Add cancel-order behavior.
+
+## Phase 4 — Portfolio
+
+- Dashboard summary.
+- Holdings.
+- Orders.
+- Performance chart.
+- Allocation chart.
+
+## Phase 5 — Watchlist
+
+- View watchlist.
+- Add/remove.
+- Bulk quote integration.
+- Stock navigation.
+
+## Phase 6 — Polish
+
+- Loading states.
+- Empty states.
+- Errors.
+- Responsive layouts.
+- Integration with Developer 2's stock insight sections.
+
+---
+
+# 36. Work Breakdown — Developer 2
+
+## Phase 1 — Shared Setup
+
+- Inspect repository.
+- Reuse shared API/state utilities.
+- Coordinate stock route/type conventions with Developer 1.
+- Reuse existing chart/toast/modal components.
+
+## Phase 2 — News
+
+- Global news if needed.
+- Stock-specific news.
+- News cards/list.
+- Loading/error/empty states.
+
+## Phase 3 — Sentiment
+
+- Current sentiment card.
+- Article sentiment badges.
+- Sentiment history retrieval.
+- Sentiment score visualization.
+
+## Phase 4 — Price + Sentiment
+
+- Transform price-history data.
+- Transform sentiment-history data.
+- Build synchronized timeline/overlay.
+- Add event hover details.
+- Handle missing data safely.
+
+## Phase 5 — Alerts
+
+- Alert form.
+- Create alert.
+- List alerts.
+- Edit alert.
+- Delete alert.
+- Status badges.
+- Triggered-state UI.
+
+## Phase 6 — Notifications / Polish
+
+- Alert polling/refetch.
+- Trigger transition detection.
+- In-app notifications.
+- Responsive layout.
+- Integrate with Developer 1's stock detail page.
+
+---
+
+# 37. Parallel Development Rules
+
+To minimize merge conflicts:
+
+## Shared files
+
+Coordinate before editing:
+
+```text
+router configuration
+global app layout
+global styles
+API client
+shared type index
+shared component index
+theme/design tokens
+```
+
+## Developer 1 branch
+
+Prefer:
+
+```text
+feature/trading
+feature/portfolio
+feature/watchlist
+```
+
+## Developer 2 branch
+
+Prefer:
+
+```text
+feature/news
+feature/sentiment
+feature/alerts
+```
+
+Create small commits grouped by feature.
+
+Avoid giant end-of-day commits.
+
+---
+
+# 38. Integration Contract Between Developers
+
+Both developers must agree on these before implementation:
+
+### Stock route
+
+```text
+/stocks/:symbol
+```
+
+### Symbol format
+
+Use the backend's exact symbol format.
+
+### Shared quote model
+
+Both the price chart and insight components should consume the same normalized quote/history representation.
+
+### Shared notification system
+
+Both developers use the same toast system.
+
+### Shared loading/error components
+
+Do not create feature-specific copies when generic versions work.
+
+### Stock page composition
+
+Developer 1 owns the shell/layout.
+
+Developer 2 plugs in:
+
+```text
+SentimentScorecard
+SentimentTimeline
+NewsList
+AlertForm
+```
+
+without taking ownership of the entire page.
+
+---
+
+# 39. Testing Strategy
+
+## Authentication
+
+- Register succeeds.
+- Invalid registration displays error.
+- Login succeeds.
+- Invalid credentials display error.
+- Protected routes redirect correctly.
+- Logout clears session.
+
+## Search
+
+- Search returns results.
+- Empty search results work.
+- Selecting stock routes correctly.
+
+## Trading
+
+- Buy market order.
+- Sell market order.
+- Buy limit order.
+- Sell limit order.
+- Invalid quantity rejected.
+- Invalid limit price rejected.
+- Backend rejection displayed.
+- Successful trade refreshes portfolio/order/position views.
+
+## Orders
+
+- Order list loads.
+- Empty state works.
+- Cancel pending order works.
+- Cancel failure displays correctly.
+
+## Portfolio
+
+- Summary loads.
+- P&L formats correctly.
+- Positions render.
+- Performance chart renders.
+- Allocation chart renders.
+
+## Watchlist
+
+- Add works.
+- Remove works.
+- Prices refresh.
+- Clicking symbol opens stock page.
+
+## News / Sentiment
+
+- News loads.
+- Stock-specific news loads.
+- Sentiment loads.
+- Bullish/Neutral/Bearish badges render.
+- Missing sentiment does not break article rendering.
+- Historical sentiment loads.
+
+## Alerts
+
+- Create target alert.
+- Create stop-loss alert.
+- Invalid price rejected.
+- Edit alert works.
+- Delete alert works.
+- Triggered alert state appears.
+- Notification is not repeatedly shown for the same trigger.
+
+## Responsive
+
+Test:
+
+- Desktop
+- Tablet
+- Mobile
+
+---
+
+# 40. Demo-First Acceptance Flow
+
+The frontend is considered hackathon-ready when a judge can perform this flow smoothly:
+
+### Step 1
+
+Log in.
+
+### Step 2
+
+See:
+
+```text
+Portfolio Value
+Cash
+P&L
+Holdings
+Performance
+Watchlist
+```
+
+### Step 3
+
+Search for a stock.
+
+### Step 4
+
+Open its stock page and see:
+
+```text
+Current price
+Price chart
+Sentiment
+Recent news
+```
+
+### Step 5
+
+Switch:
+
+```text
+BUY
+MARKET
+```
+
+Enter quantity and place a simulated trade.
+
+### Step 6
+
+See updated:
+
+```text
+Order history
+Position
+P&L
+Portfolio value
+```
+
+### Step 7
+
+Return to the stock page.
+
+Observe:
+
+```text
+Price movement
++
+Sentiment timeline
++
+Related news
+```
+
+### Step 8
+
+Create:
+
+```text
+Target price
+```
+
+or
+
+```text
+Stop-loss
+```
+
+### Step 9
+
+Show the active alert in the Alerts section.
+
+This flow should be the primary QA target.
+
+---
+
+# 41. MVP Priorities
+
+## Must Have
+
+- Authentication
+- Dashboard
 - Stock search
+- Stock detail page
+- Current quote
+- Price history chart
+- Market/Limit paper trading
+- Buy/Sell
+- Order history
+- Holdings
+- P&L
+- Portfolio performance
+- Allocation
 - Watchlist
-- Stock-detail route
-- Reusable chart components
-- Shared API/query utilities
+- Financial news
+- Bullish/Neutral/Bearish sentiment
+- Sentiment history
+- Price + sentiment visualization
+- Target/stop-loss alerts
+- Alert list
+- In-app notifications
+- Responsive UI
+- Loading/error/empty states
 
-### 10. Hackathon Priorities
-Separate:
+## Nice to Have
 
-- Must-have
-- Nice-to-have
-- Explicitly out of scope
+- Portfolio risk metric
+- Better chart tooltips
+- Additional dashboard summaries
+- More performance time ranges
+- Better alert editing UX
+- Subtle UI animation
 
-The final plan should be practical enough that implementation can begin immediately without another architecture discussion.
+## Explicitly Out of Scope
+
+Do not build for MVP:
+
+- Real-money trading
+- Payment handling
+- Advanced technical indicators
+- Social media sentiment ingestion
+- ML-based predictions
+- Buy/sell recommendations
+- Portfolio optimization
+- Advanced risk models
+- Browser push notifications
+- Complex derivatives/options trading
+- Multiple advanced order types
+- Full financial-news reader
+- Complex admin panel
+
+---
+
+# 42. Definition of Done
+
+The frontend is complete when:
+
+- Authentication works end-to-end.
+- Protected navigation works.
+- A stock can be searched and opened.
+- Current quote and history render.
+- Market and limit Buy/Sell orders can be submitted.
+- Orders appear in history.
+- Positions update after successful trades.
+- Portfolio summary updates.
+- P&L is visible.
+- Performance and allocation charts work.
+- Watchlist works.
+- News loads.
+- Sentiment loads.
+- Sentiment history is visualized.
+- Price and sentiment are shown on a common timeline.
+- Target and stop-loss alerts can be created.
+- Alerts can be viewed, edited, and deleted.
+- Triggered alerts are surfaced in-app.
+- Loading, empty, validation, and error states are implemented.
+- Desktop and mobile layouts are usable.
+- No frontend behavior relies on invented API routes.
+- No UI makes investment recommendations or promises future price movement.
+
+---
+
+# 43. Final Implementation Principle
+
+Keep the codebase simple.
+
+The best hackathon implementation is not the one with the most screens. It is the one where the core story feels complete:
+
+> **“I can safely practice trading a real stock, understand what the market news is saying, see how sentiment relates to price movement, and monitor my simulated position.”**
+
+Everything that does not strengthen that story should be deprioritized.
